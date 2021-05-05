@@ -4,7 +4,7 @@ use super::core::{Issuer, Verifier};
 use super::join::{IssuerJoinProcess, MemberJoinProcess};
 
 #[test]
-fn test() {
+fn test_flow() {
     let mut rng = thread_rng();
 
     let issuer = Issuer::random(&mut rng);
@@ -38,4 +38,19 @@ fn test() {
 
     assert!(result1);
     assert!(!result2);
+}
+
+#[test]
+fn test_serde() {
+    use serde_json;
+    use super::core::ISK;
+
+    let mut rng = thread_rng();
+    let issuer = Issuer::random(&mut rng);
+
+    let string = serde_json::to_string(&issuer.isk).unwrap();
+    println!("{}", string);
+
+    let isk : ISK = serde_json::from_str(&string).unwrap();
+    println!("{:?}", isk);
 }

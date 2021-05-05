@@ -1,16 +1,16 @@
 use bls12_381::{pairing, G1Projective, G2Affine, G2Projective, Scalar};
-// use ff::Field;
 use super::utils::{calc_sha256_scalar, gen_rand_scalar};
 use group::{Curve, GroupEncoding};
 use rand::RngCore;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct ISK {
     pub x: Scalar,
     pub y: Scalar,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct IPK {
     pub ecc_x: G2Projective,
     pub ecc_y: G2Projective,
@@ -19,6 +19,7 @@ pub struct IPK {
     pub s_y: Scalar,
 }
 
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct Signature {
     c: Scalar,
     s: Scalar,
@@ -28,7 +29,6 @@ pub struct Signature {
     ecc_w: G1Projective,
 }
 
-#[derive(Debug, Copy, Clone)]
 pub struct Issuer {
     pub isk: ISK,
     pub ipk: IPK,
@@ -79,13 +79,14 @@ impl Issuer {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct MemberCredential {
     pub ecc_a: G1Projective,
     pub ecc_b: G1Projective,
     pub ecc_c: G1Projective,
     pub ecc_d: G1Projective,
 }
+
 pub struct Member {
     pub sk: Scalar,
     pub ipk: IPK,

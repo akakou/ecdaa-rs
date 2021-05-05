@@ -1,16 +1,19 @@
 use bls12_381::{pairing, G1Projective, G2Affine, Scalar};
 use group::{Curve, GroupEncoding};
 use rand::RngCore;
+use serde::{Serialize, Deserialize};
 
 use super::core::{Issuer, Member, MemberCredential, IPK};
 use super::utils::{calc_sha256_scalar, gen_rand_scalar};
 
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct ProofHavingSk {
     ecc_q: G1Projective,
     c_1: Scalar,
     s_1: Scalar,
 }
 
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct ProofMemberCrendetialValid {
     c_2: Scalar,
     s_2: Scalar,
