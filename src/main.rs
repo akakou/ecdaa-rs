@@ -31,6 +31,7 @@ struct Issuer {
 
 struct Member {
     pub ipk: IPK,
+    pub credential: MemberCredential
 }
 
 fn gen_rand_scalar(rng: &mut impl RngCore) -> Scalar {
@@ -214,6 +215,7 @@ struct MemberJoinProcess {
     sk: Scalar,
     ecc_q: G1Projective,
     n: Scalar,
+    credential: Option<MemberCredential>
 }
 
 impl MemberJoinProcess {
@@ -221,7 +223,7 @@ impl MemberJoinProcess {
         let sk = gen_rand_scalar(rng);
         let ecc_q = G1Projective::generator() * sk;
 
-        Self { ipk, sk, ecc_q, n }
+        Self { ipk, sk, ecc_q, n, credential: None }
     }
 
     pub fn prove_haveing_sk(&self, rng: &mut impl RngCore) -> ProofHavingSk {
@@ -245,8 +247,8 @@ impl MemberJoinProcess {
     }
 
     pub fn is_member_credential_valid(
-        &self,
-        credential: &MemberCredential,
+        &mut self,
+        credential: MemberCredential,
         proof: &ProofMemberCrendetialValid,
     ) -> bool {
         if credential.ecc_a == G1Projective::generator() {
@@ -285,7 +287,16 @@ impl MemberJoinProcess {
             return false;
         }
 
+        self.credential = Some(credential);
+
         true
+    }
+
+    pub fn gen_member(self) -> Member {
+        Member {
+            ipk: self.ipk,
+            credential: self.credential.expect("never passed is_member_credential_valid")
+        }
     }
 }
 
@@ -300,7 +311,7 @@ fn test() {
     let mut issuer_join_proces = IssuerJoinProcess::new(issuer.clone());
     let n = issuer_join_proces.gen_nonce(&mut rng);
 
-    let member_join_proces = MemberJoinProcess::random(issuer.ipk, n, &mut rng);
+    let mut member_join_proces = MemberJoinProcess::random(issuer.ipk, n, &mut rng);
 
     let proof = member_join_proces.prove_haveing_sk(&mut rng);
     let is_valid = issuer_join_proces.is_proof_having_sk(&proof);
@@ -309,6 +320,8 @@ fn test() {
     let credential = issuer_join_proces.gen_member_credential(&mut rng);
     let proof = issuer_join_proces.prove_member_credential_valid(&mut rng);
 
-    let is_valid = member_join_proces.is_member_credential_valid(&credential, &proof);
+    let is_valid = member_join_proces.is_member_credential_valid(credential, &proof);
     assert!(is_valid);
+
+    let _member = member_join_proces.gen_member();
 }
