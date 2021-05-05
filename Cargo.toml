@@ -12,9 +12,11 @@ rand = "0.8.3"
 ff = "0.9.0"
 group = "0.9.0"
 sha2 = "0.9.3"
-slice_as_array = "1.1.0"
+slice_as_array = { git = "https://github.com/akakou/slice_as_array", branch="master" , default-features=false }
 # pairing = "0.19.0"
 byteorder = "1.4.3"
 serde = { version="1.0", features = ["derive"]}
 serde_json = "^1.0.41"
 
+#[features]
+#default = ["alloc"]

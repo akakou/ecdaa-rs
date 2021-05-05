@@ -1,8 +1,11 @@
 use bls12_381::{pairing, G1Projective, G2Affine, G2Projective, Scalar};
-use super::utils::{calc_sha256_scalar, gen_rand_scalar};
 use group::{Curve, GroupEncoding};
 use rand::RngCore;
 use serde::{Serialize, Deserialize};
+use alloc::vec::Vec;
+
+
+use super::utils::{calc_sha256_scalar, gen_rand_scalar};
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct ISK {
@@ -29,6 +32,7 @@ pub struct Signature {
     ecc_w: G1Projective,
 }
 
+#[derive(Debug, Copy, Clone)]
 pub struct Issuer {
     pub isk: ISK,
     pub ipk: IPK,
