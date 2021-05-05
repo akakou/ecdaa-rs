@@ -1,7 +1,10 @@
 use rand::thread_rng;
+use alloc::vec;
+use alloc::vec::Vec;
 
 use super::core::{Issuer, Verifier};
 use super::join::{IssuerJoinProcess, MemberJoinProcess};
+
 
 #[test]
 fn test_flow() {
@@ -41,6 +44,7 @@ fn test_flow() {
 }
 
 #[test]
+#[cfg(std)]
 fn test_serde() {
     use serde_json;
     use super::core::ISK;

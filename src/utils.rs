@@ -3,6 +3,8 @@ use byteorder::{BigEndian, ByteOrder};
 use ff::Field;
 use rand::RngCore;
 use sha2::{Digest, Sha256};
+use alloc::vec;
+use alloc::vec::Vec;
 
 pub fn gen_rand_scalar(rng: &mut impl RngCore) -> Scalar {
     Scalar::random(rng)
@@ -15,7 +17,7 @@ pub fn calc_sha256_scalar(vec: &[u8]) -> Scalar {
 
     let mut schalar: Vec<u64> = vec![0; hashed.len() / 8];
     BigEndian::read_u64_into(&hashed, &mut schalar);
-    let schalar = slice_as_array!(&schalar, [u64; 4]).expect("bad hash length");
+    let schalar = slice_as_array!(&schalar, [u64; 4]).unwrap();
 
     Scalar::from_raw(*schalar)
 }
