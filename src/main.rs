@@ -29,9 +29,91 @@ struct Issuer {
     pub ipk: IPK,
 }
 
+struct Signature {
+    c: Scalar,
+    s: Scalar,
+    ecc_r: G1Projective,
+    ecc_s: G1Projective,
+    ecc_t: G1Projective,
+    ecc_w: G1Projective,
+}
+
 struct Member {
+    pub sk: Scalar,
     pub ipk: IPK,
-    pub credential: MemberCredential
+    pub credential: MemberCredential,
+}
+
+impl Member {
+    pub fn sign(&self, msg: &[u8], rng: &mut impl RngCore) -> Signature {
+        let l = gen_rand_scalar(rng);
+        let ecc_r = self.credential.ecc_a * l;
+        let ecc_s = self.credential.ecc_b * l;
+        let ecc_t = self.credential.ecc_c * l;
+        let ecc_w = self.credential.ecc_d * l;
+        let r = gen_rand_scalar(rng);
+        let ecc_u = ecc_s * r;
+
+        let mut c = Vec::new();
+        c.append(ecc_u.to_bytes().as_ref().to_vec().as_mut());
+        c.append(ecc_s.to_bytes().as_ref().to_vec().as_mut());
+        c.append(ecc_w.to_bytes().as_ref().to_vec().as_mut());
+        c.append(msg.to_vec().as_mut());
+        let c = calc_sha256_scalar(&c);
+
+        let s = r + c * self.sk;
+
+        Signature {
+            c,
+            s,
+            ecc_r,
+            ecc_s,
+            ecc_t,
+            ecc_w,
+        }
+    }
+}
+
+struct Verifier {
+    ipk: IPK,
+}
+
+impl Verifier {
+    pub fn new(ipk: IPK) -> Self {
+        Self { ipk }
+    }
+
+    pub fn verify(&self, signature: &Signature, msg: &[u8]) -> bool {
+        {
+            let first = signature.ecc_s * signature.s + signature.ecc_w * (-signature.c);
+
+            let mut left = Vec::new();
+            left.append(first.to_bytes().as_ref().to_vec().as_mut());
+            left.append(signature.ecc_s.to_bytes().as_ref().to_vec().as_mut());
+            left.append(signature.ecc_w.to_bytes().as_ref().to_vec().as_mut());
+            left.append(msg.to_vec().as_mut());
+            let left = calc_sha256_scalar(&left);
+
+            if left != signature.c {
+                return false;
+            }
+        }
+
+        if pairing(&signature.ecc_r.to_affine(), &self.ipk.ecc_y.to_affine())
+            != pairing(&signature.ecc_s.to_affine(), &G2Affine::generator())
+        {
+            return false;
+        }
+
+        let sum = signature.ecc_r + signature.ecc_w;
+        if pairing(&signature.ecc_t.to_affine(), &G2Affine::generator())
+            != pairing(&sum.to_affine(), &self.ipk.ecc_x.to_affine())
+        {
+            return false;
+        }
+
+        return true;
+    }
 }
 
 fn gen_rand_scalar(rng: &mut impl RngCore) -> Scalar {
@@ -80,7 +162,6 @@ impl Issuer {
         vec.append(ecc_u_y.to_bytes().as_ref().to_vec().as_mut());
         vec.append(ecc_x.to_bytes().as_ref().to_vec().as_mut());
         vec.append(ecc_y.to_bytes().as_ref().to_vec().as_mut());
-
         let c = calc_sha256_scalar(&vec);
 
         let s_x = r_x + c * isk.x;
@@ -215,7 +296,7 @@ struct MemberJoinProcess {
     sk: Scalar,
     ecc_q: G1Projective,
     n: Scalar,
-    credential: Option<MemberCredential>
+    credential: Option<MemberCredential>,
 }
 
 impl MemberJoinProcess {
@@ -223,7 +304,13 @@ impl MemberJoinProcess {
         let sk = gen_rand_scalar(rng);
         let ecc_q = G1Projective::generator() * sk;
 
-        Self { ipk, sk, ecc_q, n, credential: None }
+        Self {
+            ipk,
+            sk,
+            ecc_q,
+            n,
+            credential: None,
+        }
     }
 
     pub fn prove_haveing_sk(&self, rng: &mut impl RngCore) -> ProofHavingSk {
@@ -267,7 +354,6 @@ impl MemberJoinProcess {
             left.append(self.ecc_q.to_bytes().as_ref().to_vec().as_mut());
             left.append(credential.ecc_d.to_bytes().as_ref().to_vec().as_mut());
             let left = calc_sha256_scalar(&left);
-            println!("{}", left == proof.c_2);
 
             if left != proof.c_2 {
                 return false;
@@ -294,8 +380,11 @@ impl MemberJoinProcess {
 
     pub fn gen_member(self) -> Member {
         Member {
+            sk: self.sk,
             ipk: self.ipk,
-            credential: self.credential.expect("never passed is_member_credential_valid")
+            credential: self
+                .credential
+                .expect("never passed is_member_credential_valid"),
         }
     }
 }
@@ -323,5 +412,18 @@ fn test() {
     let is_valid = member_join_proces.is_member_credential_valid(credential, &proof);
     assert!(is_valid);
 
-    let _member = member_join_proces.gen_member();
+    let member = member_join_proces.gen_member();
+
+    let msg: Vec<u8> = vec![2, 4, 3];
+    let dummy: Vec<u8> = vec![2, 4, 4];
+
+    let signature = member.sign(&msg, &mut rng);
+
+    let verifier = Verifier::new(issuer.ipk);
+
+    let result1 = verifier.verify(&signature, &msg);
+    let result2 = verifier.verify(&signature, &dummy);
+
+    assert!(result1);
+    assert!(!result2);
 }
