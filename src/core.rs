@@ -4,8 +4,12 @@ use rand::RngCore;
 use serde::{Serialize, Deserialize};
 use alloc::vec::Vec;
 
-
 use super::utils::{calc_sha256_scalar, gen_rand_scalar};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RogueList {
+    pub list: Vec<Scalar>
+}
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct ISK {
@@ -166,5 +170,15 @@ impl Verifier {
         }
 
         return true;
+    }
+
+    pub fn verify_revocation(&self, signature: &Signature, rl: &RogueList) -> bool {
+        for sk in &rl.list {
+            if signature.ecc_w == signature.ecc_s * sk {
+                return false;
+            }
+        }
+
+        true
     }
 }

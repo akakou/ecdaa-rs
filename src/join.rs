@@ -7,7 +7,6 @@ use super::core::{Issuer, Member, MemberCredential, IPK};
 use super::utils::{calc_sha256_scalar, gen_rand_scalar};
 
 use alloc::vec::Vec;
-use core::mem;
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub struct ProofHavingSk {
