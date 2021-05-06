@@ -2,7 +2,7 @@ use rand::thread_rng;
 use alloc::vec;
 use alloc::vec::Vec;
 
-use super::core::{Issuer, Verifier};
+use super::core::{Issuer, Verifier, RogueList};
 use super::join::{IssuerJoinProcess, MemberJoinProcess};
 
 
@@ -37,10 +37,21 @@ fn test_flow() {
     let verifier = Verifier::new(issuer.ipk);
 
     let result1 = verifier.verify(&signature, &msg);
-    let result2 = verifier.verify(&signature, &dummy);
+    let result2 = verifier.verify(&signature, &dummy);    
 
     assert!(result1);
     assert!(!result2);
+
+    let mut rl = RogueList {
+        list: vec![]
+    };
+    let result3 = verifier.verify_revocation(&signature , &rl);
+    rl.list.push(member.sk);
+
+    let result4 = verifier.verify_revocation(&signature , &rl);
+
+    assert!(result3);
+    assert!(!result4);
 }
 
 #[test]
