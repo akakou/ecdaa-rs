@@ -1,0 +1,6 @@
+[submodule "thirdparty/mcl-rust"]
+	path = thirdparty/mcl-rust
+	url = https://github.com/herumi/mcl-rust
+[submodule "thirdparty/mcl"]
+	path = thirdparty/mcl
+	url = https://github.com/herumi/mcl
