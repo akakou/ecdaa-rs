@@ -13,14 +13,3 @@ pub fn mcl_initalize() {
     }
 }
 
-pub fn rand_fr(rng: &mut impl RngCore) -> Fr {
-    mcl_initalize();
-
-    let mut x = Fr::zero();
-
-    let mut d = vec![0; 32];
-    rng.fill_bytes(&mut d);
-    x.set_little_endian_mod(&d);
-    
-    x
-}
