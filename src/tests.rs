@@ -1,6 +1,6 @@
 // use mcl_rust::G2;
 
-use crate::join::*;
+use crate::issuer::*;
 use crate::utils::*;
 
 #[test]
