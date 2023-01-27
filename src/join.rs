@@ -14,7 +14,6 @@ pub struct ReqForJoin {
     pub c1: Fr,
     pub s1: Fr,
     pub n: Fr,
-    pub c2: Fr,
 }
 
 impl ReqForJoin {
@@ -57,7 +56,7 @@ impl ReqForJoin {
 
         let s1 = &r1 + &(&c1 * &sk);
 
-        Self { q, c1, c2, s1, n }
+        Self { q, c1, s1, n }
     }
 
     pub fn is_valid(&self, m: &Fr) -> Result<(), String> {
