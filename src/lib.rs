@@ -2,6 +2,7 @@
 extern crate alloc;
 
 mod issuer;
+mod join;
 mod utils;
 
 #[cfg(test)]
