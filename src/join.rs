@@ -1,7 +1,8 @@
-use mcl_rust::{Fr, G1};
+use mcl_rust::{pairing, Fr, G1, GT};
+use rand::Error;
 
 use crate::{
-    issuer::IPK,
+    issuer::{IPK, ISK},
     utils::{g2, rand_fr},
 };
 
@@ -96,5 +97,67 @@ impl ReqForJoin {
         } else {
             Err("req for join is not valid".to_string())
         }
+    }
+}
+
+pub struct Credential {
+    pub a: G1,
+    pub b: G1,
+    pub c: G1,
+    pub d: G1,
+}
+
+impl Credential {
+    pub fn new(a: G1, b: G1, c: G1, d: G1) -> Self {
+        Self { a, b, c, d }
+    }
+
+    pub fn with_no_encryption(req: &ReqForJoin, m: &Fr, isk: &ISK) -> Self {
+        let mut a = unsafe { G1::uninit() };
+        let mut b = unsafe { G1::uninit() };
+        let mut c = unsafe { G1::uninit() };
+
+        // 1/y
+        let mut inv_y = Fr::zero();
+        Fr::inv(&mut inv_y, &isk.y);
+
+        // b = H(m)
+        b.set_hash_of(&m.serialize());
+
+        // a = B^{1/y}
+        G1::mul(&mut a, &b, &inv_y);
+
+        // c = (A Q)^x
+        let tmp = &a + &req.q;
+        G1::mul(&mut c, &tmp, &isk.x);
+
+        // d = Q
+        let d = req.q.clone();
+
+        Self::new(a, b, c, d)
+    }
+
+    pub fn is_valid(&self, ipk: &IPK) -> Result<(), String> {
+        let mut param1 = GT::zero();
+        let mut param2 = GT::zero();
+        let mut param3 = GT::zero();
+        let mut param4 = GT::zero();
+
+        let tmp = &self.a + &self.d;
+
+        pairing(&mut param1, &self.a, &ipk.y);
+        pairing(&mut param2, &self.b, &g2());
+        pairing(&mut param3, &self.c, &g2());
+        pairing(&mut param4, &tmp, &ipk.x);
+
+        if param1 != param2 {
+            return Err("e(A,Y) != e(B,g2)".to_string());
+        }
+
+        if param3 != param4 {
+            return Err("e(C, g2) != e(A D, X)".to_string());
+        }
+
+        Ok(())
     }
 }
