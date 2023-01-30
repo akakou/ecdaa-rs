@@ -1,40 +1,25 @@
-use mcl_rust::{pairing, Fr, G1, GT};
-use rand::Error;
+use mcl_rust::{pairing, Fr, G1, G2, GT};
+use rand::{random, Error};
 
 use crate::{
     issuer::{IPK, ISK},
     utils::{g2, rand_fr},
 };
 
-pub fn gen_seed_for_join() -> Fr {
-    rand_fr()
-}
-
-pub struct ReqForJoin {
+pub struct SchnorrProof {
     pub q: G1,
     pub c1: Fr,
     pub s1: Fr,
     pub n: Fr,
 }
 
-impl ReqForJoin {
-    pub fn random(m: &Fr, ipk: &IPK) -> Self {
-        let mut b = unsafe { G1::uninit() };
-        let mut q = unsafe { G1::uninit() };
+impl SchnorrProof {
+    pub fn random(m: &Fr, sk: &Fr, b: &G1, q: &G1) -> Self {
         let mut u1 = unsafe { G1::uninit() };
-
-        // B = H(m)
-        b.set_hash_of(&m.serialize());
-
-        // key pair (sk, q)
-        let sk = rand_fr();
-
-        // Q = B^sk
-        G1::mul(&mut q, &b, &sk);
 
         // U1 = B^r1
         let r1 = rand_fr();
-        G1::mul(&mut u1, &b, &r1);
+        G1::mul(&mut u1, b, &r1);
 
         // c2 = H(U1 || P1 || Q || m)
         let mut c2 = Fr::zero();
@@ -42,7 +27,11 @@ impl ReqForJoin {
 
         buf.append(&mut u1.serialize());
         buf.append(&mut g2().serialize());
-        buf.append(&mut q.serialize());
+
+        if !q.is_zero() {
+            buf.append(&mut q.serialize());
+        }
+
         buf.append(&mut m.serialize());
         c2.set_hash_of(&buf);
 
@@ -57,16 +46,17 @@ impl ReqForJoin {
 
         let s1 = &r1 + &(&c1 * &sk);
 
-        Self { q, c1, s1, n }
+        Self {
+            s1,
+            c1,
+            n,
+            q: q.clone(),
+        }
     }
 
-    pub fn is_valid(&self, m: &Fr) -> Result<(), String> {
-        let mut b = unsafe { G1::uninit() };
+    pub fn is_valid(&self, m: &Fr, b: &G1) -> Result<(), String> {
         let mut u1 = unsafe { G1::uninit() };
         let mut tmp = unsafe { G1::uninit() };
-
-        // B = H(m)
-        b.set_hash_of(&m.serialize());
 
         // U1 = b^s1 * Q^-c1
         G1::mul(&mut u1, &b, &self.s1);
@@ -97,6 +87,44 @@ impl ReqForJoin {
         } else {
             Err("req for join is not valid".to_string())
         }
+    }
+}
+
+pub fn gen_seed_for_join() -> Fr {
+    rand_fr()
+}
+
+pub struct ReqForJoin {
+    pub q: G1,
+    pub proof: SchnorrProof,
+}
+
+impl ReqForJoin {
+    pub fn random(m: &Fr, ipk: &IPK) -> Self {
+        let mut b = unsafe { G1::uninit() };
+        let mut q = unsafe { G1::uninit() };
+        let mut u1 = unsafe { G1::uninit() };
+
+        // B = H(m)
+        b.set_hash_of(&m.serialize());
+
+        // key pair (sk, q)
+        let sk = rand_fr();
+
+        // Q = B^sk
+        G1::mul(&mut q, &b, &sk);
+
+        let proof = SchnorrProof::random(m, &sk, &b, &q);
+
+        Self { q, proof }
+    }
+
+    pub fn is_valid(&self, m: &Fr) -> Result<(), String> {
+        // B = H(m)
+        let mut b = unsafe { G1::uninit() };
+        b.set_hash_of(&m.serialize());
+
+        self.proof.is_valid(m, &b)
     }
 }
 
@@ -137,6 +165,8 @@ impl Credential {
         Self::new(a, b, c, d)
     }
 
+
+
     pub fn is_valid(&self, ipk: &IPK) -> Result<(), String> {
         let mut param1 = GT::zero();
         let mut param2 = GT::zero();
@@ -161,3 +191,5 @@ impl Credential {
         Ok(())
     }
 }
+
+
