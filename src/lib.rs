@@ -1,9 +1,12 @@
 // #![no_std]
 extern crate alloc;
 
-mod issuer;
-mod join;
-mod utils;
+pub mod cred;
+pub mod issuer;
+pub mod req_for_join;
+pub mod schnorr;
+pub mod signature;
+pub mod utils;
 
 #[cfg(test)]
 mod tests;
