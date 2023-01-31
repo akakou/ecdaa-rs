@@ -9,29 +9,25 @@ use crate::{
 pub struct SchnorrProof {
     pub q: G1,
     pub c1: Fr,
-    pub s1: Fr,
+    pub s: Fr,
     pub n: Fr,
 }
 
 impl SchnorrProof {
     pub fn random(m: &Fr, sk: &Fr, b: &G1, q: &G1) -> Self {
-        let mut u1 = unsafe { G1::uninit() };
+        let r = rand_fr();
 
-        // U1 = B^r1
-        let r1 = rand_fr();
-        G1::mul(&mut u1, b, &r1);
+        // U = B^r
+        let mut u = unsafe { G1::uninit() };
+
+        G1::mul(&mut u, b, &r);
 
         // c2 = H(U1 || P1 || Q || m)
         let mut c2 = Fr::zero();
         let mut buf = vec![];
 
-        buf.append(&mut u1.serialize());
+        buf.append(&mut u.serialize());
         buf.append(&mut g2().serialize());
-
-        if !q.is_zero() {
-            buf.append(&mut q.serialize());
-        }
-
         buf.append(&mut m.serialize());
         c2.set_hash_of(&buf);
 
@@ -44,22 +40,22 @@ impl SchnorrProof {
         buf.append(&mut c2.serialize());
         c1.set_hash_of(&buf);
 
-        let s1 = &r1 + &(&c1 * &sk);
+        let s = &r + &(&c1 * sk);
 
         Self {
-            s1,
+            s,
             c1,
             n,
             q: q.clone(),
         }
     }
 
-    pub fn is_valid(&self, m: &Fr, b: &G1) -> Result<(), String> {
+    pub fn is_valid(&self, m: &Fr, b: &G1, q: &G1) -> Result<(), String> {
         let mut u1 = unsafe { G1::uninit() };
         let mut tmp = unsafe { G1::uninit() };
 
-        // U1 = b^s1 * Q^-c1
-        G1::mul(&mut u1, &b, &self.s1);
+        // U1 = b^s * Q^-c1
+        G1::mul(&mut u1, &b, &self.s);
         G1::mul(&mut tmp, &self.q, &self.c1);
 
         let u1 = &u1 - &tmp;
@@ -68,7 +64,6 @@ impl SchnorrProof {
         let mut buf = vec![];
         buf.append(&mut u1.serialize());
         buf.append(&mut g2().serialize());
-        buf.append(&mut self.q.serialize());
         buf.append(&mut m.serialize());
 
         let mut c2 = Fr::zero();
@@ -85,7 +80,7 @@ impl SchnorrProof {
         if c1 == self.c1 {
             Ok(())
         } else {
-            Err("req for join is not valid".to_string())
+            Err("schnorr proof is not valid".to_string())
         }
     }
 }
@@ -100,10 +95,9 @@ pub struct ReqForJoin {
 }
 
 impl ReqForJoin {
-    pub fn random(m: &Fr, ipk: &IPK) -> Self {
+    pub fn random(m: &Fr, ipk: &IPK) -> (Self, Fr) {
         let mut b = unsafe { G1::uninit() };
         let mut q = unsafe { G1::uninit() };
-        let mut u1 = unsafe { G1::uninit() };
 
         // B = H(m)
         b.set_hash_of(&m.serialize());
@@ -116,7 +110,9 @@ impl ReqForJoin {
 
         let proof = SchnorrProof::random(m, &sk, &b, &q);
 
-        Self { q, proof }
+        let req = Self { q, proof };
+
+        (req, sk)
     }
 
     pub fn is_valid(&self, m: &Fr) -> Result<(), String> {
@@ -124,7 +120,7 @@ impl ReqForJoin {
         let mut b = unsafe { G1::uninit() };
         b.set_hash_of(&m.serialize());
 
-        self.proof.is_valid(m, &b)
+        self.proof.is_valid(m, &b, &self.q)
     }
 }
 
@@ -210,5 +206,27 @@ impl Credential {
         }
 
         Ok(())
+    }
+}
+
+pub struct Signature {
+    pub cred: RandomizedCredential,
+    pub proof: SchnorrProof,
+}
+
+impl Signature {
+    pub fn new(cred: RandomizedCredential, proof: SchnorrProof) -> Self {
+        Self { cred, proof }
+    }
+
+    pub fn random(m: &Fr, sk: &Fr, original_cred: &Credential, ipk: &IPK) -> Self {
+        let cred = original_cred.randomize();
+        let proof = SchnorrProof::random(m, sk, &cred.s, &cred.w);
+
+        Self::new(cred, proof)
+    }
+
+    pub fn is_valid(&self, m: &Fr) -> Result<(), String> {
+        self.proof.is_valid(m, &self.cred.s, &self.cred.w)
     }
 }
