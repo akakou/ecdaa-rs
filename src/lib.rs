@@ -1,11 +1,14 @@
-#![no_std]
-
-#[macro_use]
-extern crate slice_as_array;
-extern crate rand;
+// #![no_std]
 extern crate alloc;
 
-mod utils;
-mod core;
-mod join;
+type EcdaaError = Result<(), String>;
+
+pub mod cred;
+pub mod issuer;
+pub mod req_for_join;
+pub mod schnorr;
+pub mod signature;
+pub mod utils;
+
+#[cfg(test)]
 mod tests;

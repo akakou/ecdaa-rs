@@ -1,23 +1,25 @@
-use bls12_381::Scalar;
-use byteorder::{BigEndian, ByteOrder};
-use ff::Field;
-use rand::RngCore;
-use sha2::{Digest, Sha256};
-use alloc::vec;
-use alloc::vec::Vec;
+use mcl_rust::{CurveType, Fr, G2};
 
-pub fn gen_rand_scalar(rng: &mut impl RngCore) -> Scalar {
-    Scalar::random(rng)
+static mut MCL_INITIALIZED: bool = false;
+
+pub fn initalize_mcl() {
+    unsafe {
+        if !MCL_INITIALIZED {
+            mcl_rust::init(CurveType::BN254);
+            MCL_INITIALIZED = true;
+        }
+    }
 }
 
-pub fn calc_sha256_scalar(vec: &[u8]) -> Scalar {
-    let mut hasher = Sha256::new();
-    hasher.update(vec);
-    let hashed = hasher.finalize().to_vec();
+pub fn rand_fr() -> Fr {
+    let mut fr = unsafe { Fr::uninit() };
+    fr.set_by_csprng();
 
-    let mut schalar: Vec<u64> = vec![0; hashed.len() / 8];
-    BigEndian::read_u64_into(&hashed, &mut schalar);
-    let schalar = slice_as_array!(&schalar, [u64; 4]).unwrap();
+    fr
+}
 
-    Scalar::from_raw(*schalar)
+pub fn g2() -> G2 {
+    let mut g2 = G2::zero();
+    g2.set_hash_of(&[1]);
+    return g2;
 }
