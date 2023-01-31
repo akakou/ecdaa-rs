@@ -16,5 +16,5 @@ fn test_ok() {
     cred.valid(&ipk).unwrap();
 
     let signature = Signature::generate(&m, &sk, &cred);
-    signature.valid(&m).unwrap()
+    signature.valid(&m, &ipk).unwrap()
 }

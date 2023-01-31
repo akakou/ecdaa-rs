@@ -2,6 +2,7 @@ use mcl_rust::Fr;
 
 use crate::{
     cred::{Credential, RandomizedCredential},
+    issuer::IPK,
     schnorr::SchnorrProof,
     EcdaaError,
 };
@@ -23,7 +24,10 @@ impl Signature {
         Self::new(random_cred, proof)
     }
 
-    pub fn valid(&self, m: &Fr) -> EcdaaError {
-        self.proof.valid(m, &self.cred.s)
+    pub fn valid(&self, m: &Fr, ipk: &IPK) -> EcdaaError {
+        self.proof.valid(m, &self.cred.s)?;
+        self.cred.valid(ipk)?;
+
+        Ok(())
     }
 }

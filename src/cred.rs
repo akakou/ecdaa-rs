@@ -7,6 +7,29 @@ use crate::{
     EcdaaError,
 };
 
+fn valid_cred(a: &G1, b: &G1, c: &G1, d: &G1, ipk: &IPK) -> EcdaaError {
+    let mut param1 = GT::zero();
+    let mut param2 = GT::zero();
+    let mut param3 = GT::zero();
+    let mut param4 = GT::zero();
+
+    let tmp = a + d;
+
+    pairing(&mut param1, a, &ipk.y);
+    pairing(&mut param2, b, &g2());
+    pairing(&mut param3, c, &g2());
+    pairing(&mut param4, &tmp, &ipk.x);
+
+    if param1 != param2 {
+        return Err("e(A,Y) != e(B,g2)".to_string());
+    }
+
+    if param3 != param4 {
+        return Err("e(C, g2) != e(A D, X)".to_string());
+    }
+
+    Ok(())
+}
 pub struct Credential {
     pub a: G1,
     pub b: G1,
@@ -45,27 +68,7 @@ impl Credential {
     }
 
     pub fn valid(&self, ipk: &IPK) -> EcdaaError {
-        let mut param1 = GT::zero();
-        let mut param2 = GT::zero();
-        let mut param3 = GT::zero();
-        let mut param4 = GT::zero();
-
-        let tmp = &self.a + &self.d;
-
-        pairing(&mut param1, &self.a, &ipk.y);
-        pairing(&mut param2, &self.b, &g2());
-        pairing(&mut param3, &self.c, &g2());
-        pairing(&mut param4, &tmp, &ipk.x);
-
-        if param1 != param2 {
-            return Err("e(A,Y) != e(B,g2)".to_string());
-        }
-
-        if param3 != param4 {
-            return Err("e(C, g2) != e(A D, X)".to_string());
-        }
-
-        Ok(())
+        valid_cred(&self.a, &self.b, &self.c, &self.d, ipk)
     }
 }
 
@@ -90,5 +93,9 @@ impl RandomizedCredential {
         G1::mul(&mut w, &cred.d, &l);
 
         Self { r, s, t, w }
+    }
+
+    pub fn valid(&self, ipk: &IPK) -> EcdaaError {
+        valid_cred(&self.r, &self.s, &self.t, &self.w, ipk)
     }
 }
