@@ -1,6 +1,9 @@
 use mcl_rust::{Fr, G1};
 
-use crate::utils::{rand_fr, g2};
+use crate::{
+    utils::{g2, rand_fr},
+    EcdaaError,
+};
 
 pub struct SchnorrProof {
     pub q: G1,
@@ -10,11 +13,11 @@ pub struct SchnorrProof {
 }
 
 impl SchnorrProof {
-    pub fn random(m: &Fr, sk: &Fr, b: &G1, q: &G1) -> Self {
+    pub fn generate(m: &Fr, sk: &Fr, b: &G1, q: &G1) -> Self {
         let r = rand_fr();
 
         // U = B^r
-        let mut u = unsafe { G1::uninit() };
+        let mut u = G1::zero();
 
         G1::mul(&mut u, b, &r);
 
@@ -46,9 +49,9 @@ impl SchnorrProof {
         }
     }
 
-    pub fn is_valid(&self, m: &Fr, b: &G1, q: &G1) -> Result<(), String> {
-        let mut u1 = unsafe { G1::uninit() };
-        let mut tmp = unsafe { G1::uninit() };
+    pub fn valid(&self, m: &Fr, b: &G1) -> EcdaaError {
+        let mut u1 = G1::zero();
+        let mut tmp = G1::zero();
 
         // U1 = b^s * Q^-c1
         G1::mul(&mut u1, &b, &self.s);

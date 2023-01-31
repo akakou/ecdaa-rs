@@ -4,6 +4,7 @@ use crate::{
     issuer::{IPK, ISK},
     req_for_join::ReqForJoin,
     utils::{g2, rand_fr},
+    EcdaaError,
 };
 
 pub struct Credential {
@@ -13,22 +14,15 @@ pub struct Credential {
     pub d: G1,
 }
 
-pub struct RandomizedCredential {
-    pub r: G1,
-    pub s: G1,
-    pub t: G1,
-    pub w: G1,
-}
-
 impl Credential {
     pub fn new(a: G1, b: G1, c: G1, d: G1) -> Self {
         Self { a, b, c, d }
     }
 
     pub fn with_no_encryption(req: &ReqForJoin, m: &Fr, isk: &ISK) -> Self {
-        let mut a = unsafe { G1::uninit() };
-        let mut b = unsafe { G1::uninit() };
-        let mut c = unsafe { G1::uninit() };
+        let mut a = G1::zero();
+        let mut b = G1::zero();
+        let mut c = G1::zero();
 
         // 1/y
         let mut inv_y = Fr::zero();
@@ -50,23 +44,7 @@ impl Credential {
         Self::new(a, b, c, d)
     }
 
-    pub fn randomize(&self) -> RandomizedCredential {
-        let l = rand_fr();
-
-        let mut r = G1::zero();
-        let mut s = G1::zero();
-        let mut t = G1::zero();
-        let mut w = G1::zero();
-
-        G1::mul(&mut r, &self.a, &l);
-        G1::mul(&mut s, &self.b, &l);
-        G1::mul(&mut t, &self.c, &l);
-        G1::mul(&mut w, &self.d, &l);
-
-        RandomizedCredential { r, s, t, w }
-    }
-
-    pub fn is_valid(&self, ipk: &IPK) -> Result<(), String> {
+    pub fn valid(&self, ipk: &IPK) -> EcdaaError {
         let mut param1 = GT::zero();
         let mut param2 = GT::zero();
         let mut param3 = GT::zero();
@@ -88,5 +66,29 @@ impl Credential {
         }
 
         Ok(())
+    }
+}
+
+pub struct RandomizedCredential {
+    pub r: G1,
+    pub s: G1,
+    pub t: G1,
+    pub w: G1,
+}
+impl RandomizedCredential {
+    pub fn randomize(cred: &Credential) -> Self {
+        let l = rand_fr();
+
+        let mut r = G1::zero();
+        let mut s = G1::zero();
+        let mut t = G1::zero();
+        let mut w = G1::zero();
+
+        G1::mul(&mut r, &cred.a, &l);
+        G1::mul(&mut s, &cred.b, &l);
+        G1::mul(&mut t, &cred.c, &l);
+        G1::mul(&mut w, &cred.d, &l);
+
+        Self { r, s, t, w }
     }
 }

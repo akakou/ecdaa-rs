@@ -1,13 +1,12 @@
-use alloc::vec;
-use mcl_rust::{get_curve_order, CurveType, Fp, Fp2, Fr, G2};
+use mcl_rust::{CurveType, Fr, G2};
 
-static mut mcl_initialized: bool = false;
+static mut MCL_INITIALIZED: bool = false;
 
 pub fn initalize_mcl() {
     unsafe {
-        if !mcl_initialized {
+        if !MCL_INITIALIZED {
             mcl_rust::init(CurveType::BN254);
-            mcl_initialized = true;
+            MCL_INITIALIZED = true;
         }
     }
 }

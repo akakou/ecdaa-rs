@@ -1,6 +1,6 @@
 use mcl_rust::{Fr, G1};
 
-use crate::{issuer::IPK, schnorr::SchnorrProof, utils::rand_fr};
+use crate::{schnorr::SchnorrProof, utils::rand_fr, EcdaaError};
 
 pub fn gen_seed_for_join() -> Fr {
     rand_fr()
@@ -12,9 +12,9 @@ pub struct ReqForJoin {
 }
 
 impl ReqForJoin {
-    pub fn random(m: &Fr, ipk: &IPK) -> (Self, Fr) {
-        let mut b = unsafe { G1::uninit() };
-        let mut q = unsafe { G1::uninit() };
+    pub fn generate(m: &Fr) -> (Self, Fr) {
+        let mut b = G1::zero();
+        let mut q = G1::zero();
 
         // B = H(m)
         b.set_hash_of(&m.serialize());
@@ -25,18 +25,18 @@ impl ReqForJoin {
         // Q = B^sk
         G1::mul(&mut q, &b, &sk);
 
-        let proof = SchnorrProof::random(m, &sk, &b, &q);
+        let proof = SchnorrProof::generate(m, &sk, &b, &q);
 
         let req = Self { q, proof };
 
         (req, sk)
     }
 
-    pub fn is_valid(&self, m: &Fr) -> Result<(), String> {
+    pub fn valid(&self, m: &Fr) -> EcdaaError {
         // B = H(m)
-        let mut b = unsafe { G1::uninit() };
+        let mut b = G1::zero();
         b.set_hash_of(&m.serialize());
 
-        self.proof.is_valid(m, &b, &self.q)
+        self.proof.valid(m, &b)
     }
 }

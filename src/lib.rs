@@ -1,6 +1,8 @@
 // #![no_std]
 extern crate alloc;
 
+type EcdaaError = Result<(), String>;
+
 pub mod cred;
 pub mod issuer;
 pub mod req_for_join;

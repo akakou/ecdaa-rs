@@ -1,6 +1,5 @@
-use crate::utils::g2;
-use mcl_rust::{Fr, G1, G2};
-use rand::RngCore;
+use crate::{utils::g2, EcdaaError};
+use mcl_rust::{Fr, G2};
 
 use crate::utils::rand_fr;
 
@@ -20,7 +19,7 @@ impl ISK {
         let x = rand_fr();
         let y = rand_fr();
 
-        return Self::new(x, y);
+        Self::new(x, y)
     }
 }
 
@@ -39,11 +38,11 @@ impl IPK {
         Self { x, y, c, sx, sy }
     }
 
-    pub fn random(isk: &ISK) -> Self {
+    pub fn generate(isk: &ISK) -> Self {
         // X = g2^x
         // Y = g2^y
-        let mut x = unsafe { G2::uninit() };
-        let mut y = unsafe { G2::uninit() };
+        let mut x = G2::zero();
+        let mut y = G2::zero();
 
         G2::mul(&mut x, &g2(), &isk.x);
         G2::mul(&mut y, &g2(), &isk.y);
@@ -54,12 +53,12 @@ impl IPK {
 
         // Ux = g2^rx
         // Uy = g2^ry
-        let mut ux = unsafe { G2::uninit() };
-        let mut uy = unsafe { G2::uninit() };
+        let mut ux = G2::zero();
+        let mut uy = G2::zero();
 
         G2::mul(&mut ux, &g2(), &rx);
         G2::mul(&mut uy, &g2(), &ry);
-        // let g2 = unsafe { G2::uninit() };
+        // let g2 = G2::zero();
         println!("g2: {:?}\n", g2().serialize());
 
         // c = Hash(ux|uy|g2|x|y)
@@ -81,11 +80,11 @@ impl IPK {
         Self::new(x, y, c, sx, sy)
     }
 
-    pub fn is_valid(&self) -> Result<(), String> {
+    pub fn valid(&self) -> EcdaaError {
         let g2 = g2();
 
-        let mut tmp1 = unsafe { G2::uninit() };
-        let mut tmp2 = unsafe { G2::uninit() };
+        let mut tmp1 = G2::zero();
+        let mut tmp2 = G2::zero();
 
         // // Ux = g2^sx * X^(-c)
         G2::mul(&mut tmp1, &g2, &self.sx);
