@@ -1,4 +1,5 @@
 use crate::{utils::g2, EcdaaError};
+use alloc::{format, vec};
 use mcl_rust::{Fr, G2};
 
 use crate::utils::rand_fr;
@@ -59,7 +60,6 @@ impl IPK {
         G2::mul(&mut ux, &g2(), &rx);
         G2::mul(&mut uy, &g2(), &ry);
         // let g2 = G2::zero();
-        println!("g2: {:?}\n", g2().serialize());
 
         // c = Hash(ux|uy|g2|x|y)
         let mut buf = vec![];

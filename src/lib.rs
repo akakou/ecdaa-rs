@@ -1,4 +1,6 @@
-// #![no_std]
+#![no_std]
+
+use alloc::string::String;
 extern crate alloc;
 
 type EcdaaError = Result<(), String>;

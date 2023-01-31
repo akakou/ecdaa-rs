@@ -1,3 +1,4 @@
+use alloc::string::ToString;
 use mcl_rust::{pairing, Fr, G1, GT};
 
 use crate::{
