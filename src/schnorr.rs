@@ -1,70 +1,98 @@
-use alloc::{string::ToString, vec};
+use alloc::{string::ToString, vec, vec::Vec};
 use mcl_rust::{Fr, G1};
 
-use crate::{
-    utils::{g2, rand_fr},
-    EcdaaError,
-};
+use crate::{utils::rand_fr, EcdaaError};
 
 pub struct SchnorrProof {
-    pub q: G1,
-    pub c1: Fr,
+    pub c: Fr,
     pub s: Fr,
     pub n: Fr,
+    pub k: G1,
 }
 
 impl SchnorrProof {
-    pub fn generate(m: &Fr, sk: &Fr, b: &G1, q: &G1) -> Self {
+    pub fn generate(msg: &[u8], basename: &[u8], sk: &Fr, b: &G1, q: &G1) -> Self {
         let r = rand_fr();
 
-        // U = B^r
-        let mut u = G1::zero();
+        // let mut b = G1::zero();
+        // b.set_hash_of(basename);
 
-        G1::mul(&mut u, b, &r);
+        // E = B^r
+        let mut e = G1::zero();
+        G1::mul(&mut e, b, &r);
 
-        // c2 = H(U1 || P1 || Q || m)
-        let mut c2 = Fr::zero();
+        // L = B^r
+        let mut l = G1::zero();
+        G1::mul(&mut l, b, &r);
+
+        // K = B^sk
+        let mut k = G1::zero();
+        G1::mul(&mut k, b, sk);
+
+        // c2 = H(E, L, B, K, [S, W, basename, message])
         let mut buf = vec![];
+        buf.append(&mut e.serialize());
+        buf.append(&mut l.serialize());
+        buf.append(&mut b.serialize());
+        buf.append(&mut k.serialize());
+        buf.append(&mut basename.to_vec());
+        buf.append(&mut msg.to_vec());
 
-        buf.append(&mut u.serialize());
-        buf.append(&mut g2().serialize());
-        buf.append(&mut m.serialize());
+        let mut c2 = Fr::zero();
         c2.set_hash_of(&buf);
 
         // c1 = H(n | c2)
-        let mut c1 = Fr::zero();
+        let mut c = Fr::zero();
         let mut buf = vec![];
 
         let n = rand_fr();
         buf.append(&mut n.serialize());
         buf.append(&mut c2.serialize());
-        c1.set_hash_of(&buf);
+        c.set_hash_of(&buf);
 
-        let s = &r + &(&c1 * sk);
+        // s = r + c . sk
+        let s = &r + &(&c * sk);
 
-        Self {
-            s,
-            c1,
-            n,
-            q: q.clone(),
-        }
+        Self { s, c, n, k }
     }
 
-    pub fn valid(&self, m: &Fr, b: &G1) -> EcdaaError {
-        let mut u1 = G1::zero();
+    pub fn valid(&self, msg: &[u8], basename: &[u8], b: &G1, q: &G1) -> EcdaaError {
+        let mut e = G1::zero();
+        let mut l = G1::zero();
         let mut tmp = G1::zero();
 
-        // U1 = b^s * Q^-c1
-        G1::mul(&mut u1, &b, &self.s);
-        G1::mul(&mut tmp, &self.q, &self.c1);
+        // E = B^s . Q^-c
+        // ----------------
+        // B^s . Q^-c
+        //     = B^(r + c . sk) . Q^-c
+        //     = B^(r + c . sk) . Q^-(c)
+        //     = B^(r + c . sk) . B^-(c . sk)
+        //     = B^r
+        //     = E
+        G1::mul(&mut e, b, &self.s);
+        G1::mul(&mut tmp, q, &self.c);
 
-        let u1 = &u1 - &tmp;
+        e = &e - &tmp;
 
-        // c2 = H(u1 | g2 | q | m)
+        // L = B^s - K^c
+        // ----------
+        // B^s - K^c
+        //     = B^(r + c . sk) - B^(c . sk)
+        //     = B^r
+        //     = L
+        G1::mul(&mut l, b, &self.s);
+        G1::mul(&mut tmp, &self.k, &self.c);
+
+        l = &l - &tmp;
+
+        // c2 =  H(E, L, B, K, [S, W, basename, message])
         let mut buf = vec![];
-        buf.append(&mut u1.serialize());
-        buf.append(&mut g2().serialize());
-        buf.append(&mut m.serialize());
+        buf.append(&mut e.serialize());
+        buf.append(&mut l.serialize());
+        buf.append(&mut b.serialize());
+        buf.append(&mut self.k.serialize());
+        buf.append(&mut basename.to_vec());
+        buf.append(&mut msg.to_vec());
 
         let mut c2 = Fr::zero();
         c2.set_hash_of(&buf);
@@ -74,10 +102,10 @@ impl SchnorrProof {
         buf.append(&mut self.n.serialize());
         buf.append(&mut c2.serialize());
 
-        let mut c1 = Fr::zero();
-        c1.set_hash_of(&buf);
+        let mut c = Fr::zero();
+        c.set_hash_of(&buf);
 
-        if c1 == self.c1 {
+        if c == self.c {
             Ok(())
         } else {
             Err("schnorr proof is not valid".to_string())
