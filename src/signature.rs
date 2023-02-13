@@ -17,15 +17,15 @@ impl Signature {
         Self { cred, proof }
     }
 
-    pub fn generate(m: &Fr, sk: &Fr, cred: &Credential) -> Self {
+    pub fn generate(m: &[u8], basename: &[u8], sk: &Fr, cred: &Credential) -> Self {
         let random_cred = RandomizedCredential::randomize(cred);
-        let proof = SchnorrProof::generate(m, sk, &random_cred.s, &random_cred.w);
+        let proof = SchnorrProof::generate(m, basename, sk, &random_cred.s, &random_cred.w);
 
         Self::new(random_cred, proof)
     }
 
-    pub fn valid(&self, m: &Fr, ipk: &IPK) -> EcdaaError {
-        self.proof.valid(m, &self.cred.s)?;
+    pub fn valid(&self, m: &[u8], basename: &[u8], ipk: &IPK) -> EcdaaError {
+        self.proof.valid(m, basename, &self.cred.s, &self.cred.w)?;
         self.cred.valid(ipk)?;
 
         Ok(())
