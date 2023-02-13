@@ -12,12 +12,12 @@ pub struct ReqForJoin {
 }
 
 impl ReqForJoin {
-    pub fn generate(m: &Fr) -> (Self, Fr) {
+    pub fn generate(m: &[u8]) -> (Self, Fr) {
         let mut b = G1::zero();
         let mut q = G1::zero();
 
         // B = H(m)
-        b.set_hash_of(&m.serialize());
+        b.set_hash_of(m);
 
         // key pair (sk, q)
         let sk = rand_fr();
@@ -25,18 +25,17 @@ impl ReqForJoin {
         // Q = B^sk
         G1::mul(&mut q, &b, &sk);
 
-        let proof = SchnorrProof::generate(m, &sk, &b, &q);
-
+        let proof = SchnorrProof::generate(m, m, &sk, &b, &q);
         let req = Self { q, proof };
 
         (req, sk)
     }
 
-    pub fn valid(&self, m: &Fr) -> EcdaaError {
+    pub fn valid(&self, m: &[u8]) -> EcdaaError {
         // B = H(m)
         let mut b = G1::zero();
-        b.set_hash_of(&m.serialize());
+        b.set_hash_of(m);
 
-        self.proof.valid(m, &b)
+        self.proof.valid(m, m, &b, &self.q)
     }
 }

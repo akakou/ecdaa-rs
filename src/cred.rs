@@ -43,7 +43,7 @@ impl Credential {
         Self { a, b, c, d }
     }
 
-    pub fn with_no_encryption(req: &ReqForJoin, m: &Fr, isk: &ISK) -> Self {
+    pub fn with_no_encryption(req: &ReqForJoin, m: &[u8], isk: &ISK) -> Self {
         let mut a = G1::zero();
         let mut b = G1::zero();
         let mut c = G1::zero();
@@ -53,7 +53,7 @@ impl Credential {
         Fr::inv(&mut inv_y, &isk.y);
 
         // b = H(m)
-        b.set_hash_of(&m.serialize());
+        b.set_hash_of(m);
 
         // a = B^{1/y}
         G1::mul(&mut a, &b, &inv_y);
