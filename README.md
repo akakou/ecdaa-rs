@@ -25,7 +25,10 @@ Note: This library does not support fully unlinkable mode and forces the basenam
 This library requires a `clang` compiler to build. 
 
 If you use Ubuntu, you can install it with the command ;
-> apt install clang
+
+```sh
+apt install clang
+```
 
 ## Note
 
