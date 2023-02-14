@@ -10,7 +10,7 @@ fn test_ok() {
 
     let m = gen_seed_for_join().serialize();
     let (req, sk) = ReqForJoin::generate(&m);
-    // req.valid(&m).unwrap();
+    req.valid(&m).unwrap();
 
     let cred = Credential::with_no_encryption(&req, &m, &isk);
     cred.valid(&ipk).unwrap();
