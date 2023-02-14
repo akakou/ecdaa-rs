@@ -3,7 +3,7 @@ use mcl_rust::{pairing, Fr, G1, GT};
 
 use crate::{
     issuer::{IPK, ISK},
-    req_for_join::ReqForJoin,
+    join::ReqForJoin,
     utils::{g2, rand_fr},
     EcdaaError,
 };

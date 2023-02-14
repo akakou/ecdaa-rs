@@ -1,4 +1,4 @@
-use alloc::{string::ToString, vec, vec::Vec};
+use alloc::{string::ToString, vec};
 use mcl_rust::{Fr, G1};
 
 use crate::{utils::rand_fr, EcdaaError};

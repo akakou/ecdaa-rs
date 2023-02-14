@@ -7,7 +7,7 @@ type EcdaaError = Result<(), String>;
 
 pub mod cred;
 pub mod issuer;
-pub mod req_for_join;
+pub mod join;
 pub mod schnorr;
 pub mod signature;
 mod utils;

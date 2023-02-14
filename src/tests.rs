@@ -1,4 +1,4 @@
-use crate::{cred::*, issuer::*, req_for_join::*, signature::*, utils::*};
+use crate::{cred::*, issuer::*, join::*, signature::*, utils::*};
 
 #[test]
 fn test_ok() {

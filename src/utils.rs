@@ -1,8 +1,4 @@
-use core::convert::TryFrom;
-
-use mcl_rust::{CurveType, Fp, Fr, G1, G2};
-
-use alloc::vec::Vec;
+use mcl_rust::{CurveType, Fr, G1, G2};
 
 static mut MCL_INITIALIZED: bool = false;
 
