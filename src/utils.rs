@@ -1,16 +1,5 @@
 use mcl_rust::{CurveType, Fr, G1, G2};
 
-static mut MCL_INITIALIZED: bool = false;
-
-pub fn initalize_mcl() {
-    unsafe {
-        if !MCL_INITIALIZED {
-            mcl_rust::init(CurveType::BN254);
-            MCL_INITIALIZED = true;
-        }
-    }
-}
-
 pub fn rand_fr() -> Fr {
     let mut fr = unsafe { Fr::uninit() };
     fr.set_by_csprng();

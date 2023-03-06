@@ -11,7 +11,7 @@ pub struct ISK {
 
 impl ISK {
     pub fn new(x: Fr, y: Fr) -> Self {
-        crate::utils::initalize_mcl();
+        crate::initalize_mcl();
 
         Self { x, y }
     }
@@ -34,7 +34,7 @@ pub struct IPK {
 
 impl IPK {
     pub fn new(x: G2, y: G2, c: Fr, sx: Fr, sy: Fr) -> Self {
-        crate::utils::initalize_mcl();
+        crate::initalize_mcl();
 
         Self { x, y, c, sx, sy }
     }
