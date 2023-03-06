@@ -2,7 +2,9 @@ use crate::{cred::*, initalize_mcl, issuer::*, join::*, signature::*};
 
 #[test]
 fn test_ok() {
-    initalize_mcl();
+    unsafe {
+        initalize_mcl();
+    }
 
     let isk = ISK::random();
     let ipk = IPK::generate(&isk);
