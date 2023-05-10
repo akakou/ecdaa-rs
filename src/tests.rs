@@ -1,22 +1,42 @@
-use crate::{cred::*, initalize_mcl, issuer::*, join::*, signature::*};
+use fp256bn_amcl::rand::RAND;
+
+use crate::{
+    cred::{Credential, RandomizedCredential},
+    issuer::{IPK, ISK},
+    join::ReqForJoin,
+    signature::Signature,
+};
 
 #[test]
 fn test_ok() {
-    unsafe {
-        initalize_mcl();
+    let mut raw: [u8; 100] = [0; 100];
+    let mut rng = RAND::new();
+
+    rng.clean();
+    for i in 0..100 {
+        raw[i] = i as u8
     }
 
-    let isk = ISK::random();
-    let ipk = IPK::generate(&isk);
+    rng.seed(100, &raw);
+
+    let isk = ISK::random(&mut rng);
+    let ipk = IPK::random(&isk, &mut rng);
+
     ipk.valid().unwrap();
 
-    let m = gen_seed_for_join().serialize();
-    let (req, sk) = ReqForJoin::generate(&m);
-    req.valid(&m).unwrap();
+    let m = vec![0, 2, 3];
+    let req = ReqForJoin::random(&m, &mut rng).unwrap();
 
-    let cred = Credential::with_no_encryption(&req, &m, &isk);
+    req.0.valid(&m).unwrap();
+
+    let sk = req.1;
+
+    let cred = Credential::with_no_encryption(&req.0, &m, &isk).unwrap();
     cred.valid(&ipk).unwrap();
 
-    let signature = Signature::generate(&m, &m, &sk, &cred);
-    signature.valid(&m, &m, &ipk).unwrap()
+    let rand_cred = RandomizedCredential::randomize(&cred, &mut rng);
+    rand_cred.valid(&ipk).unwrap();
+
+    let signature = Signature::sign(&m, &m, &sk, &cred, &mut rng).unwrap();
+    signature.verify(&m, &m, &ipk).unwrap()
 }

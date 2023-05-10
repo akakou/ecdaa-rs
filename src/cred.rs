@@ -1,71 +1,67 @@
-use alloc::string::ToString;
-use mcl_rust::{pairing, Fr, G1, GT};
+use fp256bn_amcl::{
+    fp256bn::{big::BIG, ecp::ECP, pair},
+    rand::RAND,
+};
 
 use crate::{
     issuer::{IPK, ISK},
     join::ReqForJoin,
-    utils::{g2, rand_fr},
+    utils::{g2, hash_to_ecp, p},
     EcdaaError,
 };
 
-fn valid_cred(a: &G1, b: &G1, c: &G1, d: &G1, ipk: &IPK) -> EcdaaError {
-    let mut param1 = GT::zero();
-    let mut param2 = GT::zero();
-    let mut param3 = GT::zero();
-    let mut param4 = GT::zero();
+fn valid_cred(a: &ECP, b: &ECP, c: &ECP, d: &ECP, ipk: &IPK) -> EcdaaError {
+    let mut tmp = a.clone();
+    tmp.add(&d);
 
-    let tmp = a + d;
+    let param1 = pair::ate(&ipk.y, a);
+    let param2 = pair::ate(&g2(), b);
+    let param3 = pair::ate(&g2(), c);
+    let param4 = pair::ate(&ipk.y, &tmp);
 
-    pairing(&mut param1, a, &ipk.y);
-    pairing(&mut param2, b, &g2());
-    pairing(&mut param3, c, &g2());
-    pairing(&mut param4, &tmp, &ipk.x);
-
-    if param1 != param2 {
-        return Err("e(A,Y) != e(B,g2)".to_string());
+    if param1.equals(&param2) {
+        return Err(3);
     }
 
-    if param3 != param4 {
-        return Err("e(C, g2) != e(A D, X)".to_string());
+    if param3.equals(&param4) {
+        return Err(4);
     }
 
     Ok(())
 }
 pub struct Credential {
-    pub a: G1,
-    pub b: G1,
-    pub c: G1,
-    pub d: G1,
+    pub a: ECP,
+    pub b: ECP,
+    pub c: ECP,
+    pub d: ECP,
 }
 
 impl Credential {
-    pub fn new(a: G1, b: G1, c: G1, d: G1) -> Self {
+    pub fn new(a: ECP, b: ECP, c: ECP, d: ECP) -> Self {
         Self { a, b, c, d }
     }
 
-    pub fn with_no_encryption(req: &ReqForJoin, m: &[u8], isk: &ISK) -> Self {
-        let mut a = G1::zero();
-        let mut b = G1::zero();
-        let mut c = G1::zero();
-
+    pub fn with_no_encryption(req: &ReqForJoin, m: &[u8], isk: &ISK) -> Result<Self, u32> {
         // 1/y
-        let mut inv_y = Fr::zero();
-        Fr::inv(&mut inv_y, &isk.y);
+        let mut inv_y = isk.y.clone();
+        inv_y.invmodp(&p());
 
         // b = H(m)
-        b.set_hash_of(m);
+        let b = hash_to_ecp(m)?.1;
 
         // a = B^{1/y}
-        G1::mul(&mut a, &b, &inv_y);
+        let a = b.mul(&inv_y);
 
         // c = (A Q)^x
-        let tmp = &a + &req.q;
-        G1::mul(&mut c, &tmp, &isk.x);
+        let mut tmp = a.clone();
+        tmp.add(&req.q);
+
+        let c = tmp.mul(&isk.x);
 
         // d = Q
         let d = req.q.clone();
 
-        Self::new(a, b, c, d)
+        Ok(Self::new(a, b, c, d))
     }
 
     pub fn valid(&self, ipk: &IPK) -> EcdaaError {
@@ -74,24 +70,19 @@ impl Credential {
 }
 
 pub struct RandomizedCredential {
-    pub r: G1,
-    pub s: G1,
-    pub t: G1,
-    pub w: G1,
+    pub r: ECP,
+    pub s: ECP,
+    pub t: ECP,
+    pub w: ECP,
 }
 impl RandomizedCredential {
-    pub fn randomize(cred: &Credential) -> Self {
-        let l = rand_fr();
+    pub fn randomize(cred: &Credential, rng: &mut RAND) -> Self {
+        let l = BIG::random(rng);
 
-        let mut r = G1::zero();
-        let mut s = G1::zero();
-        let mut t = G1::zero();
-        let mut w = G1::zero();
-
-        G1::mul(&mut r, &cred.a, &l);
-        G1::mul(&mut s, &cred.b, &l);
-        G1::mul(&mut t, &cred.c, &l);
-        G1::mul(&mut w, &cred.d, &l);
+        let r = cred.a.mul(&l);
+        let s = cred.b.mul(&l);
+        let t = cred.c.mul(&l);
+        let w = cred.d.mul(&l);
 
         Self { r, s, t, w }
     }

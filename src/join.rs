@@ -1,41 +1,40 @@
-use mcl_rust::{Fr, G1};
+use fp256bn_amcl::{
+    fp256bn::{big::BIG, ecp::ECP},
+    rand::RAND,
+    sha3::{HASH256, SHA3},
+};
 
-use crate::{schnorr::SchnorrProof, utils::rand_fr, EcdaaError};
-
-pub fn gen_seed_for_join() -> Fr {
-    rand_fr()
-}
+use crate::{
+    schnorr::SchnorrProof,
+    utils::{export_big, g1, hash_to_ecp},
+    EcdaaError,
+};
 
 pub struct ReqForJoin {
-    pub q: G1,
+    pub q: ECP,
     pub proof: SchnorrProof,
 }
 
 impl ReqForJoin {
-    pub fn generate(m: &[u8]) -> (Self, Fr) {
-        let mut b = G1::zero();
-        let mut q = G1::zero();
-
-        // B = H(m)
-        b.set_hash_of(m);
+    pub fn random(m: &[u8], mut rng: &mut RAND) -> Result<(Self, BIG), u32> {
+        let b = hash_to_ecp(m)?.1;
 
         // key pair (sk, q)
-        let sk = rand_fr();
+        let sk = BIG::random(&mut rng);
 
         // Q = B^sk
-        G1::mul(&mut q, &b, &sk);
+        let q = b.mul(&sk);
 
-        let proof = SchnorrProof::generate(m, m, &sk, &b, &q);
+        let proof = SchnorrProof::random(m, m, &sk, &b, &b, &b, rng);
         let req = Self { q, proof };
 
-        (req, sk)
+        Ok((req, sk))
     }
 
     pub fn valid(&self, m: &[u8]) -> EcdaaError {
         // B = H(m)
-        let mut b = G1::zero();
-        b.set_hash_of(m);
+        let b = hash_to_ecp(m)?.1;
 
-        self.proof.valid(m, m, &b, &self.q)
+        self.proof.valid(m, m, &b, &self.q, &b)
     }
 }

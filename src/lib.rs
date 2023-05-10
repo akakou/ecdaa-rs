@@ -1,14 +1,8 @@
-#![no_std]
-
-use alloc::string::String;
-use mcl_rust::CurveType;
+// use alloc::string::String;
+// use mcl_rust::CurveType;
 extern crate alloc;
 
-type EcdaaError = Result<(), String>;
-
-pub unsafe fn initalize_mcl() {
-    mcl_rust::init(CurveType::BN254);
-}
+type EcdaaError = Result<(), u32>;
 
 pub mod cred;
 pub mod issuer;
