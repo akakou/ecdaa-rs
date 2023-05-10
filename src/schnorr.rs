@@ -1,66 +1,73 @@
-use alloc::{string::ToString, vec};
-use mcl_rust::{Fr, G1};
+use fp256bn_amcl::{
+    fp256bn::{big::BIG, ecp::ECP},
+    rand::RAND,
+    sha3::{HASH256, SHA3},
+};
 
-use crate::{utils::rand_fr, EcdaaError};
+use crate::{
+    utils::{export_big, export_ecp, export_ecp2, p},
+    EcdaaError,
+};
 
 pub struct SchnorrProof {
-    pub c: Fr,
-    pub s: Fr,
-    pub n: Fr,
-    pub k: G1,
+    pub c: BIG,
+    pub s: BIG,
+    pub n: BIG,
+    pub k: ECP,
 }
 
 impl SchnorrProof {
-    pub fn generate(msg: &[u8], basename: &[u8], sk: &Fr, b: &G1, q: &G1) -> Self {
-        let r = rand_fr();
-
-        // let mut b = G1::zero();
-        // b.set_hash_of(basename);
+    pub fn random(
+        msg: &[u8],
+        basename: &[u8],
+        sk: &BIG,
+        b: &ECP,
+        q: &ECP,
+        mut rng: &mut RAND,
+    ) -> Self {
+        let r = BIG::random(&mut rng);
 
         // E = B^r
-        let mut e = G1::zero();
-        G1::mul(&mut e, b, &r);
+        let e = b.mul(&r);
 
         // L = B^r
-        let mut l = G1::zero();
-        G1::mul(&mut l, b, &r);
+        let l = b.mul(&r);
 
         // K = B^sk
-        let mut k = G1::zero();
-        G1::mul(&mut k, b, sk);
+        let mut k = b.mul(&sk);
 
         // c2 = H(E, L, B, K, [S, W, basename, message])
-        let mut buf = vec![];
-        buf.append(&mut e.serialize());
-        buf.append(&mut l.serialize());
-        buf.append(&mut b.serialize());
-        buf.append(&mut k.serialize());
-        buf.append(&mut basename.to_vec());
-        buf.append(&mut msg.to_vec());
+        let mut sha = SHA3::new(HASH256);
+        sha.process_array(&export_ecp(&e));
+        sha.process_array(&export_ecp(&l));
+        sha.process_array(&export_ecp(&b));
+        sha.process_array(&export_ecp(&k));
+        sha.process_array(&basename.to_vec());
+        sha.process_array(&msg.to_vec());
 
-        let mut c2 = Fr::zero();
-        c2.set_hash_of(&buf);
+        let mut digest = [0; 32];
+        sha.hash(&mut digest);
+        let c2 = BIG::frombytes(&digest.to_vec());
 
         // c1 = H(n | c2)
-        let mut c = Fr::zero();
-        let mut buf = vec![];
+        let n = BIG::random(&mut rng);
 
-        let n = rand_fr();
-        buf.append(&mut n.serialize());
-        buf.append(&mut c2.serialize());
-        c.set_hash_of(&buf);
+        let mut sha = SHA3::new(HASH256);
+        sha.process_array(&export_big(&n));
+        sha.process_array(&export_big(&c2));
+
+        let mut digest = [0; 32];
+        sha.hash(&mut digest);
+        let c = BIG::frombytes(&digest.to_vec());
 
         // s = r + c . sk
-        let s = &r + &(&c * sk);
+        let mut s = BIG::modmul(&c, &sk, &p());
+        s = BIG::modadd(&r, &s, &p());
 
         Self { s, c, n, k }
     }
 
-    pub fn valid(&self, msg: &[u8], basename: &[u8], b: &G1, q: &G1) -> EcdaaError {
-        let mut e = G1::zero();
-        let mut l = G1::zero();
-        let mut tmp = G1::zero();
-
+    pub fn valid(&self, msg: &[u8], basename: &[u8], b: &ECP, q: &ECP) -> EcdaaError {
         // E = B^s . Q^-c
         // ----------------
         // B^s . Q^-c
@@ -69,10 +76,9 @@ impl SchnorrProof {
         //     = B^(r + c . sk) . B^-(c . sk)
         //     = B^r
         //     = E
-        G1::mul(&mut e, b, &self.s);
-        G1::mul(&mut tmp, q, &self.c);
-
-        e = &e - &tmp;
+        let mut e = b.mul(&self.s);
+        let tmp = q.mul(&self.c);
+        e.sub(&tmp);
 
         // L = B^s - K^c
         // ----------
@@ -80,35 +86,38 @@ impl SchnorrProof {
         //     = B^(r + c . sk) - B^(c . sk)
         //     = B^r
         //     = L
-        G1::mul(&mut l, b, &self.s);
-        G1::mul(&mut tmp, &self.k, &self.c);
-
-        l = &l - &tmp;
+        let mut l = b.mul(&self.s);
+        let tmp = self.k.mul(&self.c);
+        l.sub(&tmp);
 
         // c2 =  H(E, L, B, K, [S, W, basename, message])
-        let mut buf = vec![];
-        buf.append(&mut e.serialize());
-        buf.append(&mut l.serialize());
-        buf.append(&mut b.serialize());
-        buf.append(&mut self.k.serialize());
-        buf.append(&mut basename.to_vec());
-        buf.append(&mut msg.to_vec());
+        let mut sha = SHA3::new(HASH256);
+        sha.process_array(&export_ecp(&e));
+        sha.process_array(&export_ecp(&l));
+        sha.process_array(&export_ecp(&b));
+        sha.process_array(&export_ecp(&self.k));
+        sha.process_array(&basename.to_vec());
+        sha.process_array(&msg.to_vec());
 
-        let mut c2 = Fr::zero();
-        c2.set_hash_of(&buf);
+        let mut digest = [0; 32];
+        sha.hash(&mut digest);
+        let c2 = BIG::frombytes(&digest.to_vec());
 
         // c1 = H(n | c2)
-        let mut buf = vec![];
-        buf.append(&mut self.n.serialize());
-        buf.append(&mut c2.serialize());
+        let mut sha = SHA3::new(HASH256);
+        sha.process_array(&export_big(&self.n));
+        sha.process_array(&export_big(&c2));
 
-        let mut c = Fr::zero();
-        c.set_hash_of(&buf);
+        let mut digest = [0; 32];
+        sha.hash(&mut digest);
+        let c = BIG::frombytes(&digest.to_vec());
 
-        if c == self.c {
+        if BIG::comp(&c, &self.c) == 0 {
             Ok(())
         } else {
-            Err("schnorr proof is not valid".to_string())
+            #[cfg(feature = "tests")]
+            println!("{}", "schnorr proof is not valid".to_string());
+            Err(0)
         }
     }
 }
