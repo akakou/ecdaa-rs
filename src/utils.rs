@@ -2,7 +2,10 @@ use alloc::vec::{self, Vec};
 use fp256bn_amcl::fp256bn::big::{BIG, NLEN};
 use fp256bn_amcl::fp256bn::ecp::ECP;
 use fp256bn_amcl::fp256bn::ecp2::ECP2;
-use fp256bn_amcl::fp256bn::rom::CURVE_ORDER;
+use fp256bn_amcl::fp256bn::rom::{CURVE_COF_I, CURVE_ORDER};
+use fp256bn_amcl::sha3::{HASH256, SHA3};
+
+use crate::EcdaaError;
 
 pub fn p() -> BIG {
     BIG::new_ints(&CURVE_ORDER)
@@ -34,23 +37,29 @@ pub fn export_ecp2(ecp2: &ECP2) -> Vec<u8> {
     return result.to_vec();
 }
 
-// pub fn rand_fr(rng: &RAND) -> BIG {
-//     let mut rng = big::thread_rng();
+pub fn hash_to_ecp(base: &[u8]) -> Result<(u8, ECP), u32> {
+    let mut i = 0;
+    let mut buf = base.to_vec();
 
-//     let mut fr = unsafe { Fr::uninit() };
-//     fr.set_by_csprng();
+    for i in 0..232 {
+        let i: u8 = i;
+        buf.push(i);
 
-//     fr
-// }
+        let mut sha = SHA3::new(HASH256);
+        sha.process_array(&buf);
+        let mut digest = [0; 32];
+        sha.hash(&mut digest);
+        let c = BIG::frombytes(&digest.to_vec());
 
-// pub fn g1() -> G1 {
-//     let mut g1 = G1::zero();
-//     g1.set_hash_of(&[1]);
-//     g1
-// }
+        let mut ecp = ECP::new_big(&c);
+        ecp.mul(&BIG::new_int(CURVE_COF_I));
 
-// pub fn g2() -> G2 {
-//     let mut g2 = G2::zero();
-//     g2.set_hash_of(&[1]);
-//     g2
-// }
+        if !ecp.is_infinity() {
+            return Ok((i, ecp));
+        }
+
+        buf.pop();
+    }
+
+    Err(2)
+}
