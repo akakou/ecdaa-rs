@@ -37,6 +37,6 @@ fn test_ok() {
     let rand_cred = RandomizedCredential::randomize(&cred, &mut rng);
     rand_cred.valid(&ipk).unwrap();
 
-    let signature = Signature::sign(&m, &m, &sk, &cred, &mut rng);
+    let signature = Signature::sign(&m, &m, &sk, &cred, &mut rng).unwrap();
     signature.verify(&m, &m, &ipk).unwrap()
 }

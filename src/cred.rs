@@ -80,9 +80,9 @@ impl RandomizedCredential {
         let l = BIG::random(rng);
 
         let r = cred.a.mul(&l);
-        let s = cred.a.mul(&l);
-        let t = cred.a.mul(&l);
-        let w = cred.a.mul(&l);
+        let s = cred.b.mul(&l);
+        let t = cred.c.mul(&l);
+        let w = cred.d.mul(&l);
 
         Self { r, s, t, w }
     }

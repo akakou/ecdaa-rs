@@ -4,6 +4,7 @@ use crate::{
     cred::{Credential, RandomizedCredential},
     issuer::IPK,
     schnorr::SchnorrProof,
+    utils::hash_to_ecp,
     EcdaaError,
 };
 
@@ -17,16 +18,25 @@ impl Signature {
         Self { cred, proof }
     }
 
-    pub fn sign(m: &[u8], basename: &[u8], sk: &BIG, cred: &Credential, rng: &mut RAND) -> Self {
-        let random_cred = RandomizedCredential::randomize(cred, rng);
-        let proof = SchnorrProof::random(m, basename, sk, &random_cred.s, &random_cred.w, rng);
+    pub fn sign(
+        m: &[u8],
+        basename: &[u8],
+        sk: &BIG,
+        cred: &Credential,
+        rng: &mut RAND,
+    ) -> Result<Self, u32> {
+        let random_cred: RandomizedCredential = RandomizedCredential::randomize(cred, rng);
+        let b = hash_to_ecp(basename)?.1;
+        let proof = SchnorrProof::random(m, basename, sk, &random_cred.s, &random_cred.w, &b, rng);
 
-        Self::new(random_cred, proof)
+        Ok(Self::new(random_cred, proof))
     }
 
     pub fn verify(&self, m: &[u8], basename: &[u8], ipk: &IPK) -> EcdaaError {
-        self.proof.valid(m, basename, &self.cred.s, &self.cred.w)?;
         self.cred.valid(ipk)?;
+        let b = hash_to_ecp(basename)?.1;
+        self.proof
+            .valid(m, basename, &self.cred.s, &self.cred.w, &b)?;
         Ok(())
     }
 }

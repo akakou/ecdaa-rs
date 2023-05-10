@@ -5,7 +5,7 @@ use fp256bn_amcl::{
 };
 
 use crate::{
-    utils::{export_big, export_ecp, export_ecp2, p},
+    utils::{export_big, export_ecp, g1, p},
     EcdaaError,
 };
 
@@ -23,18 +23,19 @@ impl SchnorrProof {
         sk: &BIG,
         b: &ECP,
         q: &ECP,
+        hash: &ECP,
         mut rng: &mut RAND,
     ) -> Self {
         let r = BIG::random(&mut rng);
 
-        // E = B^r
-        let e = q.mul(&r);
+        // E = q^r
+        let e = b.mul(&r);
 
         // L = B^r
-        let l = b.mul(&r);
+        let l = hash.mul(&r);
 
         // K = B^sk
-        let k = b.mul(&sk);
+        let k = hash.mul(&sk);
 
         // c2 = H(E, L, B, K, [S, W, basename, message])
         let mut sha = SHA3::new(HASH256);
@@ -67,17 +68,17 @@ impl SchnorrProof {
         Self { s, c, n, k }
     }
 
-    pub fn valid(&self, msg: &[u8], basename: &[u8], b: &ECP, q: &ECP) -> EcdaaError {
-        // E = B^s . Q^-c
+    pub fn valid(&self, msg: &[u8], basename: &[u8], s: &ECP, w: &ECP, hash: &ECP) -> EcdaaError {
+        // E = S^s . W^-c
         // ----------------
-        // B^s . Q^-c
-        //     = B^(r + c . sk) . Q^-c
-        //     = B^(r + c . sk) . Q^-(c)
-        //     = B^(r + c . sk) . B^-(c . sk)
-        //     = B^r
-        //     = E
-        let mut e = b.mul(&self.s);
-        let tmp = q.mul(&self.c);
+        // S^s . W^-c
+        //     = S^(r + c . sk) . W^-c
+        //     = S^(r + c . sk) . W^-(c)
+        //     = B^l .(r + c . sk) . Q^-(c . r . l)
+        //     = B  .(r + c . sk) . Q ^ - (c . r )
+        //     = B ^ sk
+        let mut e = s.mul(&self.s);
+        let tmp = w.mul(&self.c);
         e.sub(&tmp);
 
         // L = B^s - K^c
@@ -86,7 +87,7 @@ impl SchnorrProof {
         //     = B^(r + c . sk) - B^(c . sk)
         //     = B^r
         //     = L
-        let mut l = b.mul(&self.s);
+        let mut l = hash.mul(&self.s);
         let tmp = self.k.mul(&self.c);
         l.sub(&tmp);
 
@@ -94,7 +95,7 @@ impl SchnorrProof {
         let mut sha = SHA3::new(HASH256);
         sha.process_array(&export_ecp(&e));
         sha.process_array(&export_ecp(&l));
-        sha.process_array(&export_ecp(&b));
+        sha.process_array(&export_ecp(&s));
         sha.process_array(&export_ecp(&self.k));
         sha.process_array(&basename.to_vec());
         sha.process_array(&msg.to_vec());

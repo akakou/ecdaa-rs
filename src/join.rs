@@ -6,7 +6,7 @@ use fp256bn_amcl::{
 
 use crate::{
     schnorr::SchnorrProof,
-    utils::{export_big, hash_to_ecp},
+    utils::{export_big, g1, hash_to_ecp},
     EcdaaError,
 };
 
@@ -25,7 +25,7 @@ impl ReqForJoin {
         // Q = B^sk
         let q = b.mul(&sk);
 
-        let proof = SchnorrProof::random(m, m, &sk, &b, &q, rng);
+        let proof = SchnorrProof::random(m, m, &sk, &b, &b, &b, rng);
         let req = Self { q, proof };
 
         Ok((req, sk))
@@ -35,6 +35,6 @@ impl ReqForJoin {
         // B = H(m)
         let b = hash_to_ecp(m)?.1;
 
-        self.proof.valid(m, m, &b, &self.q)
+        self.proof.valid(m, m, &b, &self.q, &b)
     }
 }
