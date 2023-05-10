@@ -1,6 +1,9 @@
 use fp256bn_amcl::rand::RAND;
 
-use crate::issuer::{IPK, ISK};
+use crate::{
+    issuer::{IPK, ISK},
+    join::ReqForJoin,
+};
 
 #[test]
 fn test_ok() {
@@ -18,4 +21,9 @@ fn test_ok() {
     let ipk = IPK::random(&isk, &mut rng);
 
     ipk.valid().unwrap();
+
+    let m = vec![0, 2, 3];
+    let req = ReqForJoin::random(&m, &mut rng).unwrap();
+
+    req.0.valid(&m).unwrap();
 }
