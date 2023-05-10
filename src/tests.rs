@@ -4,6 +4,7 @@ use crate::{
     cred::{Credential, RandomizedCredential},
     issuer::{IPK, ISK},
     join::ReqForJoin,
+    signature::Signature,
 };
 
 #[test]
@@ -28,10 +29,14 @@ fn test_ok() {
 
     req.0.valid(&m).unwrap();
 
+    let sk = req.1;
+
     let cred = Credential::with_no_encryption(&req.0, &m, &isk).unwrap();
     cred.valid(&ipk).unwrap();
 
-    RandomizedCredential::randomize(&cred, &mut rng)
-        .valid(&ipk)
-        .unwrap();
+    let rand_cred = RandomizedCredential::randomize(&cred, &mut rng);
+    rand_cred.valid(&ipk).unwrap();
+
+    let signature = Signature::sign(&m, &m, &sk, &cred, &mut rng);
+    signature.verify(&m, &m, &ipk).unwrap()
 }
