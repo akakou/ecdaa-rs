@@ -1,6 +1,7 @@
 use fp256bn_amcl::rand::RAND;
 
 use crate::{
+    cred::{Credential, RandomizedCredential},
     issuer::{IPK, ISK},
     join::ReqForJoin,
 };
@@ -26,4 +27,11 @@ fn test_ok() {
     let req = ReqForJoin::random(&m, &mut rng).unwrap();
 
     req.0.valid(&m).unwrap();
+
+    let cred = Credential::with_no_encryption(&req.0, &m, &isk).unwrap();
+    cred.valid(&ipk).unwrap();
+
+    RandomizedCredential::randomize(&cred, &mut rng)
+        .valid(&ipk)
+        .unwrap();
 }
