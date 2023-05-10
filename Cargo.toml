@@ -8,3 +8,6 @@ edition = "2018"
 
 [dependencies]
 fp256bn_amcl = { git = "https://github.com/akakou/fp256bn-amcl" }
+
+[features]
+default = []

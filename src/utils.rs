@@ -38,7 +38,6 @@ pub fn export_ecp2(ecp2: &ECP2) -> Vec<u8> {
 }
 
 pub fn hash_to_ecp(base: &[u8]) -> Result<(u8, ECP), u32> {
-    let mut i = 0;
     let mut buf = base.to_vec();
 
     for i in 0..232 {
@@ -51,7 +50,7 @@ pub fn hash_to_ecp(base: &[u8]) -> Result<(u8, ECP), u32> {
         sha.hash(&mut digest);
         let c = BIG::frombytes(&digest.to_vec());
 
-        let mut ecp = ECP::new_big(&c);
+        let ecp = ECP::new_big(&c);
         ecp.mul(&BIG::new_int(CURVE_COF_I));
 
         if !ecp.is_infinity() {

@@ -76,7 +76,7 @@ pub struct RandomizedCredential {
     pub w: ECP,
 }
 impl RandomizedCredential {
-    pub fn randomize(cred: &Credential, mut rng: &mut RAND) -> Self {
+    pub fn randomize(cred: &Credential, rng: &mut RAND) -> Self {
         let l = BIG::random(rng);
 
         let r = cred.a.mul(&l);

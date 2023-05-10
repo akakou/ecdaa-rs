@@ -28,13 +28,13 @@ impl SchnorrProof {
         let r = BIG::random(&mut rng);
 
         // E = B^r
-        let e = b.mul(&r);
+        let e = q.mul(&r);
 
         // L = B^r
         let l = b.mul(&r);
 
         // K = B^sk
-        let mut k = b.mul(&sk);
+        let k = b.mul(&sk);
 
         // c2 = H(E, L, B, K, [S, W, basename, message])
         let mut sha = SHA3::new(HASH256);
