@@ -16,6 +16,12 @@ pub fn g2() -> ECP2 {
     ECP2::generator()
 }
 
+pub fn export_big(big: &BIG) -> Vec<u8> {
+    let mut result = [0; 32];
+    big.tobytes(&mut result);
+    return result.to_vec();
+}
+
 pub fn export_ecp(ecp: &ECP) -> Vec<u8> {
     let mut result = [0; 33];
     ecp.tobytes(&mut result, true);
