@@ -1,19 +1,11 @@
 use alloc::vec::{self, Vec};
-use fp256bn_amcl::fp256bn;
 use fp256bn_amcl::fp256bn::big::{BIG, NLEN};
 use fp256bn_amcl::fp256bn::ecp::ECP;
 use fp256bn_amcl::fp256bn::ecp2::ECP2;
 use fp256bn_amcl::fp256bn::rom::CURVE_ORDER;
 
 pub fn p() -> BIG {
-    let v_bytes: &[u8] = unsafe {
-        core::slice::from_raw_parts(
-            CURVE_ORDER.to_vec().as_ptr() as *const u8,
-            &CURVE_ORDER.to_vec().len() * core::mem::size_of::<i64>(),
-        )
-    };
-
-    fp256bn::big::BIG::frombytes(v_bytes)
+    BIG::new_ints(&CURVE_ORDER)
 }
 
 pub fn g1() -> ECP {
