@@ -1,10 +1,9 @@
-// use alloc::string::String;
-// use mcl_rust::CurveType;
 extern crate alloc;
 extern crate serde;
 
 type EcdaaError = Result<(), u32>;
 
+pub use fp256bn_amcl;
 pub mod cred;
 pub mod issuer;
 pub mod join;

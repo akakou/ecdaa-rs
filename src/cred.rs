@@ -72,7 +72,6 @@ impl Credential {
     }
 }
 
-
 #[derive(Deserialize, Serialize, Copy, Clone)]
 pub struct RandomizedCredential {
     pub r: ECP,
