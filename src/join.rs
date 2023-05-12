@@ -1,15 +1,12 @@
 use fp256bn_amcl::{
     fp256bn::{big::BIG, ecp::ECP},
     rand::RAND,
-    sha3::{HASH256, SHA3},
 };
+use serde::{Deserialize, Serialize};
 
-use crate::{
-    schnorr::SchnorrProof,
-    utils::{export_big, g1, hash_to_ecp},
-    EcdaaError,
-};
+use crate::{schnorr::SchnorrProof, utils::hash_to_ecp, EcdaaError};
 
+#[derive(Deserialize, Serialize, Copy, Clone)]
 pub struct ReqForJoin {
     pub q: ECP,
     pub proof: SchnorrProof,

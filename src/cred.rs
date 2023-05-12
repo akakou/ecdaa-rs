@@ -2,6 +2,7 @@ use fp256bn_amcl::{
     fp256bn::{big::BIG, ecp::ECP, pair},
     rand::RAND,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{
     issuer::{IPK, ISK},
@@ -29,6 +30,8 @@ fn valid_cred(a: &ECP, b: &ECP, c: &ECP, d: &ECP, ipk: &IPK) -> EcdaaError {
 
     Ok(())
 }
+
+#[derive(Deserialize, Serialize, Copy, Clone)]
 pub struct Credential {
     pub a: ECP,
     pub b: ECP,
@@ -69,12 +72,15 @@ impl Credential {
     }
 }
 
+
+#[derive(Deserialize, Serialize, Copy, Clone)]
 pub struct RandomizedCredential {
     pub r: ECP,
     pub s: ECP,
     pub t: ECP,
     pub w: ECP,
 }
+
 impl RandomizedCredential {
     pub fn randomize(cred: &Credential, rng: &mut RAND) -> Self {
         let l = BIG::random(rng);

@@ -1,6 +1,7 @@
 // use alloc::string::String;
 // use mcl_rust::CurveType;
 extern crate alloc;
+extern crate serde;
 
 type EcdaaError = Result<(), u32>;
 

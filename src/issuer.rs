@@ -1,20 +1,14 @@
-// use crate::{utils::g2, EcdaaError};
-// use mcl_rust::{Fr, G2};
-
-use alloc::{format, vec};
-use fp256bn_amcl::fp256bn::ecp::ECP;
+use fp256bn_amcl::fp256bn::big::BIG;
 use fp256bn_amcl::fp256bn::ecp2::ECP2;
-use fp256bn_amcl::fp256bn::{self, big};
 use fp256bn_amcl::sha3::{HASH256, SHA3};
-use fp256bn_amcl::{fp256bn::big::BIG, sha3};
 
 use fp256bn_amcl::rand::RAND;
+use serde::{Deserialize, Serialize};
 
-use crate::utils::{export_ecp, export_ecp2, g2, p};
+use crate::utils::{export_ecp2, g2, p};
 use crate::EcdaaError;
 
-// use crate::utils::rand_fr;
-
+#[derive(Deserialize, Serialize, Copy, Clone)]
 pub struct ISK {
     pub x: BIG,
     pub y: BIG,
@@ -33,6 +27,7 @@ impl ISK {
     }
 }
 
+#[derive(Deserialize, Serialize, Copy, Clone)]
 pub struct IPK {
     pub x: ECP2,
     pub y: ECP2,

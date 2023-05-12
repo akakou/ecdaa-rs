@@ -7,7 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-fp256bn_amcl = { git = "https://github.com/akakou/fp256bn-amcl" }
+fp256bn_amcl = { git = "https://github.com/akakou/fp256bn-amcl", branch = "serde" }
+serde = { version = "^1.0", default-features = false, features = ["alloc", "derive"]}
 
 [features]
 default = []

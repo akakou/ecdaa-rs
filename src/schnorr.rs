@@ -3,12 +3,14 @@ use fp256bn_amcl::{
     rand::RAND,
     sha3::{HASH256, SHA3},
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    utils::{export_big, export_ecp, g1, p},
+    utils::{export_big, export_ecp, p},
     EcdaaError,
 };
 
+#[derive(Deserialize, Serialize, Copy, Clone)]
 pub struct SchnorrProof {
     pub c: BIG,
     pub s: BIG,

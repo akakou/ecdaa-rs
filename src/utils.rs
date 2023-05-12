@@ -1,19 +1,17 @@
-use alloc::vec::{self, Vec};
-use fp256bn_amcl::fp256bn::big::{BIG, NLEN};
+use alloc::vec::Vec;
+use fp256bn_amcl::fp256bn::big::BIG;
 use fp256bn_amcl::fp256bn::ecp::ECP;
 use fp256bn_amcl::fp256bn::ecp2::ECP2;
 use fp256bn_amcl::fp256bn::rom::{CURVE_COF_I, CURVE_ORDER};
 use fp256bn_amcl::sha3::{HASH256, SHA3};
 
-use crate::EcdaaError;
-
 pub fn p() -> BIG {
     BIG::new_ints(&CURVE_ORDER)
 }
 
-pub fn g1() -> ECP {
-    ECP::generator()
-}
+// pub fn g1() -> ECP {
+//     ECP::generator()
+// }
 
 pub fn g2() -> ECP2 {
     ECP2::generator()

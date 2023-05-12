@@ -1,4 +1,5 @@
 use fp256bn_amcl::{fp256bn::big::BIG, rand::RAND};
+use serde::{Deserialize, Serialize};
 
 use crate::{
     cred::{Credential, RandomizedCredential},
@@ -8,6 +9,7 @@ use crate::{
     EcdaaError,
 };
 
+#[derive(Deserialize, Serialize, Copy, Clone)]
 pub struct Signature {
     pub cred: RandomizedCredential,
     pub proof: SchnorrProof,
