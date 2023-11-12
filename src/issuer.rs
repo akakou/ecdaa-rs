@@ -79,7 +79,7 @@ impl IPK {
         Self::new(x, y, c, sx, sy)
     }
 
-    pub fn valid(&self) -> EcdaaError {
+    pub fn valid(&self) -> Result<(), EcdaaError> {
         // Ux = g2^sx . X^(-c)
         let mut ux = ECP2::mul(&g2(), &self.sx);
         let tmp = ECP2::mul(&self.x, &self.c);
@@ -105,9 +105,7 @@ impl IPK {
         if BIG::comp(&c, &self.c) == 0 {
             Ok(())
         } else {
-            #[cfg(feature = "tests")]
-            println!("IPK is not valid ({:?} != {:?})", c, self.c);
-            Err(0)
+            Err(EcdaaError::InvalidPublicKey)
         }
     }
 }

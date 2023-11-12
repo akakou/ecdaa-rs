@@ -52,8 +52,8 @@ impl SchnorrProof {
         w: &ECP,
         calc_k: bool,
         mut rng: &mut RAND,
-    ) -> Self {
-        let b = hash_to_ecp(basename).expect("hashing errror").1;
+    ) -> Result<Self, EcdaaError> {
+        let b = hash_to_ecp(basename)?.0;
 
         let (r, e, l, k) = Self::commit(sk, &b, s, calc_k, &mut rng);
 
@@ -93,10 +93,17 @@ impl SchnorrProof {
         let mut s = BIG::modmul(&c, &sk, &p());
         s = BIG::modadd(&r, &s, &p());
 
-        Self { s, c, n, k }
+        Ok(Self { s, c, n, k })
     }
 
-    pub fn valid(&self, msg: &[u8], basename: &[u8], s: &ECP, w: &ECP, calc_k: bool) -> EcdaaError {
+    pub fn valid(
+        &self,
+        msg: &[u8],
+        basename: &[u8],
+        s: &ECP,
+        w: &ECP,
+        calc_k: bool,
+    ) -> Result<(), EcdaaError> {
         // E = S^s . W^-c
         // ----------------
         // S^s . W^-c
@@ -116,11 +123,11 @@ impl SchnorrProof {
         sha.process_array(&export_ecp(&w));
 
         if calc_k {
-            let b = hash_to_ecp(basename).expect("hashing errror").1;
+            let b = hash_to_ecp(basename)?.0;
 
             let k = match self.k {
                 Some(k) => k,
-                None => return Err(2),
+                None => return Err(EcdaaError::KNotInSignature),
             };
 
             // L = B^s - K^c
@@ -157,9 +164,7 @@ impl SchnorrProof {
         if BIG::comp(&c, &self.c) == 0 {
             Ok(())
         } else {
-            #[cfg(feature = "tests")]
-            println!("{}", "schnorr proof is not valid".to_string());
-            Err(0)
+            Err(EcdaaError::InvalidSchnorrProof)
         }
     }
 }

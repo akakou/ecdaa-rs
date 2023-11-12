@@ -1,7 +1,7 @@
 use fp256bn_amcl::rand::RAND;
 
 use crate::{
-    cred::{Credential, RandomizedCredential},
+    cred::{randomize_cred, Credential},
     issuer::{IPK, ISK},
     join::ReqForJoin,
     signature::Signature,
@@ -35,23 +35,23 @@ fn test_ok() {
     let cred = Credential::with_no_encryption(&req.0, &m, &isk).unwrap();
     cred.valid(&ipk).expect("cred");
 
-    let rand_cred = RandomizedCredential::randomize(&cred, &mut rng);
+    let rand_cred = randomize_cred(&cred, &mut rng);
     rand_cred.valid(&ipk).expect("rand cred");
 
     let signature = Signature::sign(&m, &basename, &sk, &cred, true, &mut rng).unwrap();
 
     match signature.verify(&m, &basename, &ipk, true) {
-        Err(e) => panic!("error: {}", e),
+        Err(e) => panic!("error: {:?}", e),
         _ => (),
     }
 
     match signature.verify(&basename, &basename, &ipk, true) {
-        Err(e) => {}
+        Err(_) => {}
         _ => panic!("error: should fail"),
     }
 
     match signature.verify(&basename, &basename, &ipk, true) {
-        Err(e) => {}
+        Err(_) => {}
         _ => panic!("error: should fail"),
     }
 }
