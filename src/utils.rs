@@ -5,6 +5,8 @@ use fp256bn_amcl::fp256bn::ecp2::ECP2;
 use fp256bn_amcl::fp256bn::rom::{CURVE_COF_I, CURVE_ORDER};
 use fp256bn_amcl::sha3::{HASH256, SHA3};
 
+use crate::EcdaaError;
+
 pub fn p() -> BIG {
     BIG::new_ints(&CURVE_ORDER)
 }
@@ -35,7 +37,7 @@ pub fn export_ecp2(ecp2: &ECP2) -> Vec<u8> {
     return result.to_vec();
 }
 
-pub fn hash_to_ecp(base: &[u8]) -> Result<(u8, ECP), u32> {
+pub fn hash_to_ecp(base: &[u8]) -> Result<(ECP, u8), EcdaaError> {
     let mut buf = base.to_vec();
 
     for i in 0..232 {
@@ -52,11 +54,11 @@ pub fn hash_to_ecp(base: &[u8]) -> Result<(u8, ECP), u32> {
         ecp.mul(&BIG::new_int(CURVE_COF_I));
 
         if !ecp.is_infinity() {
-            return Ok((i, ecp));
+            return Ok((ecp, i));
         }
 
         buf.pop();
     }
 
-    Err(2)
+    Err(EcdaaError::HashingFailed)
 }

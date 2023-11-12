@@ -1,7 +1,15 @@
 extern crate alloc;
 extern crate serde;
 
-type EcdaaError = Result<(), u32>;
+#[derive(Debug)]
+pub enum EcdaaError {
+    InvalidSchnorrProof,
+    InvalidPublicKey,
+    InvalidCredential1,
+    InvalidCredential2,
+    KNotInSignature,
+    HashingFailed,
+}
 
 pub use fp256bn_amcl;
 pub mod cred;
