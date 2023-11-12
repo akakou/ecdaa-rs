@@ -6,7 +6,7 @@ use fp256bn_amcl::{
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    utils::{export_big, export_ecp, p},
+    utils::{export_big, export_ecp, hash_to_ecp, p},
     EcdaaError,
 };
 
@@ -15,37 +15,63 @@ pub struct SchnorrProof {
     pub c: BIG,
     pub s: BIG,
     pub n: BIG,
-    pub k: ECP,
+    pub k: Option<ECP>,
 }
 
 impl SchnorrProof {
+    pub fn commit(
+        sk: &BIG,
+        b: &ECP,
+        s: &ECP,
+        calc_k: bool,
+        mut rng: &mut RAND,
+    ) -> (BIG, ECP, ECP, Option<ECP>) {
+        let r = BIG::random(&mut rng);
+
+        // E = S^r
+        let e = s.mul(&r);
+
+        // L = B^r
+        let l = b.mul(&r);
+
+        let k = if calc_k {
+            // K = B^sk
+            Some(b.mul(&sk))
+        } else {
+            None
+        };
+
+        return (r, e, l, k);
+    }
+
     pub fn random(
         msg: &[u8],
         basename: &[u8],
         sk: &BIG,
-        b: &ECP,
-        q: &ECP,
-        hash: &ECP,
+        s: &ECP,
+        w: &ECP,
+        calc_k: bool,
         mut rng: &mut RAND,
     ) -> Self {
-        let r = BIG::random(&mut rng);
+        let b = hash_to_ecp(basename).expect("hashing errror").1;
 
-        // E = q^r
-        let e = b.mul(&r);
+        let (r, e, l, k) = Self::commit(sk, &b, s, calc_k, &mut rng);
 
-        // L = B^r
-        let l = hash.mul(&r);
-
-        // K = B^sk
-        let k = hash.mul(&sk);
-
-        // c2 = H(E, L, B, K, [S, W, basename, message])
+        // c' = H(E, S, W, [L, B, K, basename, message])
         let mut sha = SHA3::new(HASH256);
         sha.process_array(&export_ecp(&e));
-        sha.process_array(&export_ecp(&l));
-        sha.process_array(&export_ecp(&b));
-        sha.process_array(&export_ecp(&k));
-        sha.process_array(&basename.to_vec());
+        sha.process_array(&export_ecp(&s));
+        sha.process_array(&export_ecp(&w));
+
+        if calc_k {
+            let unwraped_k = &k.expect("K");
+
+            sha.process_array(&export_ecp(&l));
+            sha.process_array(&export_ecp(&b));
+            sha.process_array(&export_ecp(unwraped_k));
+            sha.process_array(&basename.to_vec());
+        }
+
         sha.process_array(&msg.to_vec());
 
         let mut digest = [0; 32];
@@ -70,7 +96,7 @@ impl SchnorrProof {
         Self { s, c, n, k }
     }
 
-    pub fn valid(&self, msg: &[u8], basename: &[u8], s: &ECP, w: &ECP, hash: &ECP) -> EcdaaError {
+    pub fn valid(&self, msg: &[u8], basename: &[u8], s: &ECP, w: &ECP, calc_k: bool) -> EcdaaError {
         // E = S^s . W^-c
         // ----------------
         // S^s . W^-c
@@ -83,23 +109,36 @@ impl SchnorrProof {
         let tmp = w.mul(&self.c);
         e.sub(&tmp);
 
-        // L = B^s - K^c
-        // ----------
-        // B^s - K^c
-        //     = B^(r + c . sk) - B^(c . sk)
-        //     = B^r
-        //     = L
-        let mut l = hash.mul(&self.s);
-        let tmp = self.k.mul(&self.c);
-        l.sub(&tmp);
-
-        // c2 =  H(E, L, B, K, [S, W, basename, message])
+        // c' = H(E, S, W, [L, B, K, basename, message])
         let mut sha = SHA3::new(HASH256);
         sha.process_array(&export_ecp(&e));
-        sha.process_array(&export_ecp(&l));
         sha.process_array(&export_ecp(&s));
-        sha.process_array(&export_ecp(&self.k));
-        sha.process_array(&basename.to_vec());
+        sha.process_array(&export_ecp(&w));
+
+        if calc_k {
+            let b = hash_to_ecp(basename).expect("hashing errror").1;
+
+            let k = match self.k {
+                Some(k) => k,
+                None => return Err(2),
+            };
+
+            // L = B^s - K^c
+            // ----------
+            // B^s - K^c
+            //     = B^(r + c . sk) - B^(c . sk)
+            //     = B^r
+            //     = L
+            let mut l = b.mul(&self.s);
+            let tmp = self.k.expect("failed to get k").mul(&self.c);
+            l.sub(&tmp);
+
+            sha.process_array(&export_ecp(&l));
+            sha.process_array(&export_ecp(&b));
+            sha.process_array(&export_ecp(&k));
+            sha.process_array(&basename.to_vec());
+        }
+
         sha.process_array(&msg.to_vec());
 
         let mut digest = [0; 32];
