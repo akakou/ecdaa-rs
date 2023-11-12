@@ -22,16 +22,14 @@ impl ReqForJoin {
         // Q = B^sk
         let q = b.mul(&sk);
 
-        let proof = SchnorrProof::random(m, m, &sk, &b, &b, &b, rng);
+        let proof = SchnorrProof::random(m, &[], &sk, &b, &q, false, rng);
         let req = Self { q, proof };
 
         Ok((req, sk))
     }
 
     pub fn valid(&self, m: &[u8]) -> EcdaaError {
-        // B = H(m)
         let b = hash_to_ecp(m)?.1;
-
-        self.proof.valid(m, m, &b, &self.q, &b)
+        self.proof.valid(m, &[], &b, &self.q, false)
     }
 }

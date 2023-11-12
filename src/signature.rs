@@ -5,7 +5,6 @@ use crate::{
     cred::{Credential, RandomizedCredential},
     issuer::IPK,
     schnorr::SchnorrProof,
-    utils::hash_to_ecp,
     EcdaaError,
 };
 
@@ -25,20 +24,20 @@ impl Signature {
         basename: &[u8],
         sk: &BIG,
         cred: &Credential,
+        calc_k: bool,
         rng: &mut RAND,
     ) -> Result<Self, u32> {
         let random_cred: RandomizedCredential = RandomizedCredential::randomize(cred, rng);
-        let b = hash_to_ecp(basename)?.1;
-        let proof = SchnorrProof::random(m, basename, sk, &random_cred.s, &random_cred.w, &b, rng);
+        let proof =
+            SchnorrProof::random(m, basename, sk, &random_cred.s, &random_cred.w, calc_k, rng);
 
         Ok(Self::new(random_cred, proof))
     }
 
-    pub fn verify(&self, m: &[u8], basename: &[u8], ipk: &IPK) -> EcdaaError {
+    pub fn verify(&self, m: &[u8], basename: &[u8], ipk: &IPK, calc_k: bool) -> EcdaaError {
         self.cred.valid(ipk)?;
-        let b = hash_to_ecp(basename)?.1;
         self.proof
-            .valid(m, basename, &self.cred.s, &self.cred.w, &b)?;
+            .valid(m, basename, &self.cred.s, &self.cred.w, calc_k)?;
         Ok(())
     }
 }
