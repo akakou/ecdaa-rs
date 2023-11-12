@@ -52,13 +52,20 @@ impl Credential {
         tmp.add(&self.d);
 
         let param1 = pair::ate(&ipk.y, &self.a);
+        let param1 = pair::fexp(&param1);
+
         let param2 = pair::ate(&g2(), &self.b);
-        let param3 = pair::ate(&g2(), &self.c);
-        let param4 = pair::ate(&ipk.y, &tmp);
+        let param2 = pair::fexp(&param2);
 
         if !param1.equals(&param2) {
             return Err(EcdaaError::InvalidCredential1);
         }
+
+        let param3 = pair::ate(&g2(), &self.c);
+        let param3 = pair::fexp(&param3);
+
+        let param4 = pair::ate(&ipk.x, &tmp);
+        let param4 = pair::fexp(&param4);
 
         if !param3.equals(&param4) {
             return Err(EcdaaError::InvalidCredential2);
