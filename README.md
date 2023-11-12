@@ -16,23 +16,12 @@ If you needs information about ECDAA, please follow the websites:
 - Original article of DAA
   - https://eprint.iacr.org/2004/205.pdf
 
-This library uses the [mcl](https://github.com/herumi/mcl) library for cryptographic computation.
+This library uses the [forked amcl](https://github.com/akakou-fork/fp256bn-amcl/tree/serde) library for cryptographic computation.
 
-Note: This library does not support fully unlinkable mode and forces the basename, but it may be updated shortly.
-
-## Dependecies
-
-This library requires a `clang` compiler to build. 
-
-If you use Ubuntu, you can install it with the command ;
-
-```sh
-apt install clang
-```
 
 ## Note
 
-This library expects that it is used for research, not the real world.  
+This library is just for research, not real world.  
 
-Nevertheless, if you want to use this library for practical usages,   
+If you want to use this library for practical usages,   
 **YOU NEED TO CHECK ITS CODES AND USE IT AT OWN RISK**.
