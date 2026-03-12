@@ -50,8 +50,7 @@ pub fn hash_to_ecp(base: &[u8]) -> Result<(ECP, u8), EcdaaError> {
         sha.hash(&mut digest);
         let c = BIG::frombytes(&digest.to_vec());
 
-        let ecp = ECP::new_big(&c);
-        ecp.mul(&BIG::new_int(CURVE_COF_I));
+        let ecp = ECP::new_big(&c).mul(&BIG::new_int(CURVE_COF_I));
 
         if !ecp.is_infinity() {
             return Ok((ecp, i));
