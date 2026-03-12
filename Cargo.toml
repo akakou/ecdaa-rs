@@ -10,6 +10,13 @@ edition = "2018"
 fp256bn_amcl = { git = "https://github.com/akakou/fp256bn-amcl", branch = "serde" }
 serde = { version = "^1.0", default-features = false, features = ["alloc", "derive"]}
 
+[dev-dependencies]
+criterion = "0.5"
+
 [features]
 default = []
 std = ["fp256bn_amcl/std"]
+
+[[bench]]
+name = "ecdaa"
+harness = false
